@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build twine
+      - name: Build sdist and wheel
+        run: python -m build
+      - name: Check metadata
+        run: twine check dist/*
+      - name: Confirm the tag matches the package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(python -c "import re,pathlib; print(re.search(r'__version__ = \"([^\"]+)\"', pathlib.Path('src/data_agent/__init__.py').read_text()).group(1))")
+          echo "tag=$tag package=$pkg"
+          test "$tag" = "$pkg" || { echo "tag $tag does not match package version $pkg"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error

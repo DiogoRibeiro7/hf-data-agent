@@ -10,13 +10,28 @@ __pycache__/
 .mypy_cache/
 .benchmarks/
 htmlcov/
-.coverage*
+.coverage
+coverage.xml
 dist/
 build/
+
+# Secrets never enter the image.
 .env
+.env.*
+
+# Generated at runtime; rebuilt with `make seed` / `make ingest`.
 data/*.db
 data/vector_store.json
+
+# Not needed at runtime. data/seed/*.md is deliberately NOT excluded — the
+# knowledge base is ingested from it.
 tests/
 docs/
-*.md
-!README.md
+prompts/
+AGENTS.md
+CHANGELOG.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+Makefile
+docker-compose.yml
