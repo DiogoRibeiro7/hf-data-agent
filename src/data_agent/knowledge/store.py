@@ -69,8 +69,11 @@ class VectorStore:
         return len(self._chunks)
 
     def save(self) -> None:
+        """Persist atomically, so a crash mid-write cannot leave a half-store on disk."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps([asdict(c) for c in self._chunks]), encoding="utf-8")
+        tmp = self.path.with_name(self.path.name + ".tmp")
+        tmp.write_text(json.dumps([asdict(c) for c in self._chunks]), encoding="utf-8")
+        tmp.replace(self.path)
 
     def load(self) -> None:
         raw = json.loads(self.path.read_text(encoding="utf-8"))
