@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 from fastapi.testclient import TestClient
 
 from data_agent.api.app import app
 from data_agent.knowledge.ingest import ingest
 from data_agent.knowledge.sources.base import Document
+from data_agent.observability import request_id_var
 from data_agent.runtime import get_runtime
 
 
@@ -107,6 +110,16 @@ class TestRequestCorrelation:
     def test_a_supplied_request_id_is_echoed_back(self, client):
         response = client.get("/health", headers={"X-Request-ID": "trace-me"})
         assert response.headers["X-Request-ID"] == "trace-me"
+
+    def test_the_access_log_line_carries_the_id(self, client, caplog):
+        """The id used to be reset before the access line was emitted, so the
+        one log record that summarises the request was the only one without it."""
+        with caplog.at_level(logging.INFO, logger="data_agent.api.app"):
+            client.get("/health", headers={"X-Request-ID": "trace-me"})
+        handled = [r for r in caplog.records if r.getMessage() == "request handled"]
+        assert handled
+        assert request_id_var.get() == "-"  # reset once the request finished
+        assert handled[0].__dict__.get("status") == 200
 
     def test_ids_differ_between_requests(self, client):
         first = client.get("/health").headers["X-Request-ID"]

@@ -13,6 +13,12 @@ from typing import Protocol
 
 from data_agent.config import Settings
 
+#: Delimiter the orchestrator uses to attach retrieved context to the system
+#: prompt. Providers that need to know whether a turn was grounded match this
+#: exact marker rather than the bare word "CONTEXT", which also appears in the
+#: instruction text itself.
+CONTEXT_MARKER = "\n\nCONTEXT:\n"
+
 
 @dataclass(frozen=True)
 class Message:

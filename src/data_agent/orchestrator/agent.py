@@ -16,7 +16,7 @@ import time
 from dataclasses import dataclass, field
 
 from data_agent.knowledge.retriever import RetrievedContext
-from data_agent.model.base import Message
+from data_agent.model.base import CONTEXT_MARKER, Message
 from data_agent.runtime import Runtime
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class Orchestrator:
         system = SYSTEM
         if contexts:
             blocks = "\n\n".join(f"[{c.source}]\n{c.text}" for c in contexts)
-            system = f"{SYSTEM}\n\nCONTEXT:\n{blocks}"
+            system = f"{SYSTEM}{CONTEXT_MARKER}{blocks}"
         return [Message("system", system), Message("user", question)]
 
     async def answer(self, question: str) -> AgentReply:

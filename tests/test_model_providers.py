@@ -12,12 +12,15 @@ import httpx
 import pytest
 
 from data_agent.config import Settings
-from data_agent.model.base import Message, build_provider
+from data_agent.model.base import CONTEXT_MARKER, Message, build_provider
 from data_agent.model.hf_inference import HFInferenceProvider
 from data_agent.model.mock_provider import MockProvider
 from data_agent.model.openai_compatible import OpenAICompatibleProvider
+from data_agent.orchestrator.agent import SYSTEM
 
-MESSAGES = [Message("system", "CONTEXT: revenue"), Message("user", "how much revenue?")]
+# Shaped exactly as the orchestrator assembles a grounded turn.
+GROUNDED_SYSTEM = SYSTEM + CONTEXT_MARKER + "[kb]\nrevenue is booked nightly"
+MESSAGES = [Message("system", GROUNDED_SYSTEM), Message("user", "how much revenue?")]
 
 
 def _chat_response(content: str = "  spaced answer  ") -> httpx.Response:
@@ -65,6 +68,17 @@ class TestMockProvider:
 
     async def test_survives_an_empty_message_list(self):
         assert await MockProvider().generate([])
+
+    async def test_the_bare_system_prompt_does_not_count_as_context(self):
+        """The regression: SYSTEM itself contains the word "CONTEXT", so a
+        substring check reported every ungrounded turn as grounded."""
+        out = await MockProvider().generate([Message("system", SYSTEM), Message("user", "hi")])
+        assert "no retrieved context" in out
+
+    async def test_an_injected_context_block_does_count(self):
+        system = SYSTEM + CONTEXT_MARKER + "[kb]\nrevenue runs nightly"
+        out = await MockProvider().generate([Message("system", system), Message("user", "hi")])
+        assert "context provided" in out
 
 
 class TestOpenAICompatibleProvider:

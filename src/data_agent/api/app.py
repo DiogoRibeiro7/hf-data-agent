@@ -74,19 +74,21 @@ async def correlate_requests(
     started = time.perf_counter()
     try:
         response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        # Logged before the context variable is reset, so this access line carries
+        # the same id as the lines emitted while the request was being handled.
+        logger.info(
+            "request handled",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+                "elapsed_ms": round((time.perf_counter() - started) * 1000),
+            },
+        )
+        return response
     finally:
         request_id_var.reset(token)
-    response.headers["X-Request-ID"] = request_id
-    logger.info(
-        "request handled",
-        extra={
-            "method": request.method,
-            "path": request.url.path,
-            "status": response.status_code,
-            "elapsed_ms": round((time.perf_counter() - started) * 1000),
-        },
-    )
-    return response
 
 
 @app.get("/health")
