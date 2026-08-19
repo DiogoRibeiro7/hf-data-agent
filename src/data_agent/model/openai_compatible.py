@@ -2,6 +2,7 @@
 (vLLM `--api-server` or HF TGI). This is the recommended production path: serve
 the open model once, point many agents at it. See scripts/serve_model.sh.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence

@@ -1,7 +1,8 @@
 """Create a tiny SQLite warehouse so /tool and warehouse_query work out of the box.
 
-    python scripts/seed_warehouse.py
+python scripts/seed_warehouse.py
 """
+
 from __future__ import annotations
 
 import sqlite3

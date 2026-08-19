@@ -48,9 +48,7 @@ def test_ingest_and_retrieve(settings):
 @pytest.mark.asyncio
 async def test_mock_provider_grounds_on_context(settings):
     provider = build_provider(settings)
-    out = await provider.generate(
-        [Message("system", "CONTEXT: x"), Message("user", "hello")]
-    )
+    out = await provider.generate([Message("system", "CONTEXT: x"), Message("user", "hello")])
     assert "context provided" in out
 
 

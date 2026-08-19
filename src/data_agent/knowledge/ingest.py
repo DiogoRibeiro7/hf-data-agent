@@ -3,6 +3,7 @@
 Run periodically (cron / Airflow DAG). Pulls each source, chunks, embeds, and
 persists to the vector store. The online request path only ever reads.
 """
+
 from __future__ import annotations
 
 from data_agent.config import Settings
@@ -25,15 +26,17 @@ def ingest(sources: list[KnowledgeSource], settings: Settings) -> VectorStore:
     for source in sources:
         for doc in source.fetch():
             for j, piece in enumerate(chunk_text(doc.text)):
-                store.add([
-                    Chunk(
-                        id=f"{doc.source}#{doc.id}#{j}",
-                        text=piece,
-                        source=doc.source,
-                        metadata=doc.metadata,
-                        embedding=embedder.embed(piece),
-                    )
-                ])
+                store.add(
+                    [
+                        Chunk(
+                            id=f"{doc.source}#{doc.id}#{j}",
+                            text=piece,
+                            source=doc.source,
+                            metadata=doc.metadata,
+                            embedding=embedder.embed(piece),
+                        )
+                    ]
+                )
     store.save()
     return store
 

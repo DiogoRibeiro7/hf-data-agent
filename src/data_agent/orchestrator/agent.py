@@ -8,6 +8,7 @@ Default flow (retrieval-augmented generation):
 Live data tools (warehouse / airflow) are exposed both here and over MCP. A full
 tool-calling / ReAct loop is the natural extension point — see prompts/.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

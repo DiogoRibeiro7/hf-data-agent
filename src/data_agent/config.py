@@ -1,4 +1,5 @@
 """Central configuration. Everything is driven by env vars (see .env.example)."""
+
 from __future__ import annotations
 
 from functools import lru_cache

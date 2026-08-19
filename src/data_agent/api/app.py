@@ -5,6 +5,7 @@ Endpoints:
   POST /tool   -> invoke a live data tool directly (warehouse / airflow / kb)
   GET  /health
 """
+
 from __future__ import annotations
 
 from pathlib import Path

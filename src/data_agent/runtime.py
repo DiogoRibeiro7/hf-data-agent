@@ -1,6 +1,7 @@
 """Single wiring point. Builds the model, retriever, and data sources from
 settings and holds them. Both the HTTP API and the MCP servers share one Runtime
 so 'tools' behave identically however they're reached."""
+
 from __future__ import annotations
 
 from functools import lru_cache

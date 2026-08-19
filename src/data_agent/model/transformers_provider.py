@@ -4,6 +4,7 @@ Install: pip install "hf-data-agent[transformers]"
 Default model is small enough for CPU/modest GPU; point DA_MODEL_ID at any
 instruct model (Qwen2.5, Llama-3.x, Phi-4, Mistral, ...).
 """
+
 from __future__ import annotations
 
 import asyncio

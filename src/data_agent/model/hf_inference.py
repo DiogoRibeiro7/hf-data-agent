@@ -1,5 +1,6 @@
 """Hosted path: call the HF Inference Providers chat endpoint. Zero infra, good
 for prototyping. Set DA_HF_TOKEN and DA_MODEL_ID."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence

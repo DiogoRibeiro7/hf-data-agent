@@ -3,6 +3,7 @@
 Deliberately swappable. For real scale, replace `VectorStore` with a Chroma /
 Qdrant / pgvector adapter exposing the same `add` / `search` surface.
 """
+
 from __future__ import annotations
 
 import json

@@ -3,6 +3,7 @@
 
     python scripts/ingest.py data/seed
 """
+
 from __future__ import annotations
 
 import sys

@@ -1,5 +1,6 @@
 """Embedders. Default is dependency-free and deterministic (hashing bag-of-words)
 so RAG works with no model download; swap to sentence-transformers for quality."""
+
 from __future__ import annotations
 
 import hashlib

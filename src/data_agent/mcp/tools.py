@@ -1,5 +1,6 @@
 """The agent's capabilities, defined once. The orchestrator calls these directly;
 the MCP server re-exports them so external MCP clients get the same tools."""
+
 from __future__ import annotations
 
 from data_agent.runtime import Runtime

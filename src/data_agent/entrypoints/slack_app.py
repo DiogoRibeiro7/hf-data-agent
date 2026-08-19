@@ -4,6 +4,7 @@ Install: pip install "hf-data-agent[slack]"
 Env: DA_SLACK_BOT_TOKEN, DA_SLACK_SIGNING_SECRET
 Run: python -m data_agent.entrypoints.slack_app
 """
+
 from __future__ import annotations
 
 import asyncio

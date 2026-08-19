@@ -1,5 +1,6 @@
 """Working warehouse adapter via SQLAlchemy. DA_WAREHOUSE_DSN defaults to a local
 SQLite file; point it at Postgres/Snowflake/BigQuery/DuckDB in production."""
+
 from __future__ import annotations
 
 from data_agent.datasources.base import QueryResult

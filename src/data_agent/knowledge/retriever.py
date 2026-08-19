@@ -1,4 +1,5 @@
 """Online retrieval: embed the query, cosine-search the pre-built store."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

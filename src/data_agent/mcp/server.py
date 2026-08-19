@@ -5,6 +5,7 @@ entrypoint (HTTP/SSE) — see entrypoints/mcp_local.py and mcp_remote.py.
 
 Install: pip install "hf-data-agent[mcp]"
 """
+
 from __future__ import annotations
 
 from data_agent.orchestrator.agent import Orchestrator

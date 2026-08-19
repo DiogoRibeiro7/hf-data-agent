@@ -1,5 +1,6 @@
 """Stubs for the remaining 'Data Platform Sources' in the diagram. Implement the
 `query` (or trigger/list) surface against your cluster and remove the raise."""
+
 from __future__ import annotations
 
 import httpx
@@ -29,11 +30,7 @@ class AirflowSource:
 
     def query(self, statement: str) -> QueryResult:
         dag_id = statement.strip()
-        path = (
-            "/api/v1/dags"
-            if dag_id in {"", "list"}
-            else f"/api/v1/dags/{dag_id}/dagRuns"
-        )
+        path = "/api/v1/dags" if dag_id in {"", "list"} else f"/api/v1/dags/{dag_id}/dagRuns"
         resp = httpx.get(self.base_url + path, auth=self.auth, timeout=30.0)
         resp.raise_for_status()
         data = resp.json()

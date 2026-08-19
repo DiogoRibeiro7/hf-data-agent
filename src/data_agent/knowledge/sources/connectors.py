@@ -5,6 +5,7 @@ credentials/SDKs so the contract is explicit and the diagram stays honest.
 Implement `fetch()` against the respective API and you're done — ingestion,
 chunking, embedding, retrieval are all source-agnostic.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterator

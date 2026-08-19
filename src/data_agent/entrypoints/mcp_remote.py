@@ -1,5 +1,6 @@
 """REMOTE AGENT-MCP entrypoint: streamable-HTTP transport, for networked MCP
 clients. Run: python -m data_agent.entrypoints.mcp_remote"""
+
 from __future__ import annotations
 
 from data_agent.mcp.server import build_mcp

@@ -1,5 +1,6 @@
 """Working source: ingest local .md/.txt files. Use this for company wikis
 exported to disk, runbooks, design docs, etc."""
+
 from __future__ import annotations
 
 from collections.abc import Iterator

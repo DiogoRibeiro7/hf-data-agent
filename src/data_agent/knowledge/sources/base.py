@@ -1,6 +1,7 @@
 """Knowledge sources feed the offline ingestion pipeline. Each yields Documents;
 ingestion chunks + embeds them. Matches the diagram's 'Slack, Google Docs, Notion'.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterator

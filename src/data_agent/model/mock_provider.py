@@ -1,5 +1,6 @@
 """Deterministic provider used as the default so the whole stack runs with no
 GPU, no downloads, and no network. Swap to a real backend via env vars."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence

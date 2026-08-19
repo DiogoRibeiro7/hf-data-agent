@@ -4,6 +4,7 @@ The diagram's MODEL box is a hard dependency boundary: the orchestrator only
 knows about `ModelProvider.generate`. Swap GPT-5.2 for any open HF model by
 changing DA_MODEL_BACKEND / DA_MODEL_ID — nothing else moves.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence

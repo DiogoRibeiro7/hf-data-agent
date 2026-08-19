@@ -3,6 +3,7 @@
 Unlike knowledge (pre-processed), these are queried at request time. They are
 exposed to the model as MCP tools, so the agent can pull fresh numbers.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -19,9 +20,7 @@ class QueryResult:
             return "(no rows)"
         head = "| " + " | ".join(self.columns) + " |"
         sep = "| " + " | ".join("---" for _ in self.columns) + " |"
-        body = "\n".join(
-            "| " + " | ".join(str(c) for c in r) + " |" for r in self.rows[:limit]
-        )
+        body = "\n".join("| " + " | ".join(str(c) for c in r) + " |" for r in self.rows[:limit])
         return f"{head}\n{sep}\n{body}"
 
 
