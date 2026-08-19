@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 
 from data_agent.config import get_settings
+from data_agent.observability import configure_logging
 from data_agent.orchestrator.agent import Orchestrator
 from data_agent.runtime import get_runtime
 
@@ -19,6 +20,7 @@ def main() -> None:
     from slack_bolt.adapter.socket_mode import SocketModeHandler
 
     settings = get_settings()
+    configure_logging(settings.log_level, settings.log_format)
     app = App(token=settings.slack_bot_token, signing_secret=settings.slack_signing_secret)
     orchestrator = Orchestrator(get_runtime())
 

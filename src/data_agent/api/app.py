@@ -11,11 +11,13 @@ Put it behind an authenticating proxy before exposing it. See SECURITY.md.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+import logging
+import time
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 
 from data_agent import __version__
@@ -28,20 +30,58 @@ from data_agent.api.schemas import (
 )
 from data_agent.datasources.sql_guard import UnsafeSQLError
 from data_agent.mcp.tools import TOOLS
+from data_agent.observability import configure_logging, new_request_id, request_id_var
 from data_agent.orchestrator.agent import Orchestrator
 from data_agent.runtime import get_runtime
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """Build the runtime eagerly, and release its pools and clients on shutdown."""
-    get_runtime()
+    rt = get_runtime()
+    configure_logging(rt.settings.log_level, rt.settings.log_format)
+    logger.info(
+        "agent api ready",
+        extra={
+            "version": __version__,
+            "model_backend": rt.settings.model_backend,
+            "kb_chunks": len(rt.retriever.store),
+        },
+    )
     yield
     await get_runtime().aclose()
 
 
 app = FastAPI(title="HF Data Agent", version=__version__, lifespan=lifespan)
 _UI = Path(__file__).resolve().parent.parent / "entrypoints" / "ui" / "index.html"
+
+
+@app.middleware("http")
+async def correlate_requests(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
+    """Give every request an id, echo it back, and log how it went."""
+    request_id = request.headers.get("X-Request-ID") or new_request_id()
+    token = request_id_var.set(request_id)
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    finally:
+        request_id_var.reset(token)
+    response.headers["X-Request-ID"] = request_id
+    logger.info(
+        "request handled",
+        extra={
+            "method": request.method,
+            "path": request.url.path,
+            "status": response.status_code,
+            "elapsed_ms": round((time.perf_counter() - started) * 1000),
+        },
+    )
+    return response
 
 
 @app.get("/health")
@@ -73,9 +113,11 @@ def tool(req: ToolRequest) -> ToolResponse:
     if entry is None:
         raise HTTPException(404, f"unknown tool {req.name!r}. available: {sorted(TOOLS)}")
     fn, _ = entry
+    logger.info("tool invoked", extra={"tool": req.name, "arg_keys": sorted(req.args)})
     try:
         return ToolResponse(result=fn(get_runtime(), **req.args))
     except UnsafeSQLError as exc:
+        logger.warning("tool rejected unsafe sql", extra={"tool": req.name, "reason": str(exc)})
         # The caller sent a statement the read-only guard rejected: their fault, not ours.
         raise HTTPException(400, str(exc)) from exc
     except TypeError as exc:

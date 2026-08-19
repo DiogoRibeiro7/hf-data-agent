@@ -9,6 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ModelBackend = Literal["mock", "transformers", "openai_compatible", "hf_inference"]
 EmbedderBackend = Literal["hashing", "sentence_transformers"]
+LogFormat = Literal["text", "json"]
 
 
 class Settings(BaseSettings):
@@ -53,6 +54,11 @@ class Settings(BaseSettings):
     # local-only use. The API ships without auth — see SECURITY.md.
     api_host: str = "0.0.0.0"  # noqa: S104
     api_port: int = 8000
+
+    #: Root log level for every entrypoint.
+    log_level: str = "INFO"
+    #: "text" for humans, "json" for log shipping.
+    log_format: LogFormat = "text"
 
     # ---- Slack entrypoint ----
     slack_bot_token: str = ""
