@@ -1,0 +1,31 @@
+name: Feature request
+description: Propose a capability or an extension to the agent.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What can't you do today? Describe the situation, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [orchestrator, model provider, knowledge / RAG, datasources, MCP, entrypoints, tooling / CI, docs]
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Effect on the architecture invariants
+      description: |
+        Does this keep every entrypoint behind the single orchestrator, the model behind
+        `ModelProvider`, knowledge offline / data online, and tools defined once? See CONTRIBUTING.md.

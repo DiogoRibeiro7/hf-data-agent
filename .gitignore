@@ -1,9 +1,43 @@
+# Byte-compiled / cache
 __pycache__/
 *.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
 *.egg-info/
+.eggs/
+
+# Virtual environments
 .venv/
+venv/
+env/
+
+# Environment / secrets
 .env
-data/*.db
-data/vector_store.json
+.env.*
+!.env.example
+
+# Test & lint caches
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.benchmarks/
+.tox/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+junit.xml
+
+# Generated data artifacts (rebuild with `make seed` / `make ingest`)
+data/*.db
+data/vector_store.json
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
