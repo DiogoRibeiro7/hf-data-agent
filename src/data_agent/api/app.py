@@ -16,8 +16,9 @@ import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 
 from data_agent import __version__
@@ -32,9 +33,13 @@ from data_agent.datasources.sql_guard import UnsafeSQLError
 from data_agent.mcp.tools import TOOLS
 from data_agent.observability import configure_logging, new_request_id, request_id_var
 from data_agent.orchestrator.agent import Orchestrator
-from data_agent.runtime import get_runtime
+from data_agent.runtime import Runtime, get_runtime
 
 logger = logging.getLogger(__name__)
+
+#: Injected so tests (and embedders) can substitute a runtime via
+#: `app.dependency_overrides[get_runtime]`.
+RuntimeDep = Annotated[Runtime, Depends(get_runtime)]
 
 
 @asynccontextmanager
@@ -85,8 +90,7 @@ async def correlate_requests(
 
 
 @app.get("/health")
-def health() -> dict:
-    rt = get_runtime()
+def health(rt: RuntimeDep) -> dict:
     return {
         "status": "ok",
         "version": __version__,
@@ -97,10 +101,10 @@ def health() -> dict:
 
 
 @app.post("/ask", response_model=AskResponse)
-async def ask(req: AskRequest) -> AskResponse:
+async def ask(req: AskRequest, rt: RuntimeDep) -> AskResponse:
     if not req.question.strip():
         raise HTTPException(400, "empty question")
-    reply = await Orchestrator(get_runtime()).answer(req.question)
+    reply = await Orchestrator(rt).answer(req.question)
     return AskResponse(
         answer=reply.answer,
         contexts=[ContextOut(source=c.source, score=c.score, text=c.text) for c in reply.contexts],
@@ -108,14 +112,14 @@ async def ask(req: AskRequest) -> AskResponse:
 
 
 @app.post("/tool", response_model=ToolResponse)
-def tool(req: ToolRequest) -> ToolResponse:
+def tool(req: ToolRequest, rt: RuntimeDep) -> ToolResponse:
     entry = TOOLS.get(req.name)
     if entry is None:
         raise HTTPException(404, f"unknown tool {req.name!r}. available: {sorted(TOOLS)}")
     fn, _ = entry
     logger.info("tool invoked", extra={"tool": req.name, "arg_keys": sorted(req.args)})
     try:
-        return ToolResponse(result=fn(get_runtime(), **req.args))
+        return ToolResponse(result=fn(rt, **req.args))
     except UnsafeSQLError as exc:
         logger.warning("tool rejected unsafe sql", extra={"tool": req.name, "reason": str(exc)})
         # The caller sent a statement the read-only guard rejected: their fault, not ours.

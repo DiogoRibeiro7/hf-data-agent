@@ -79,6 +79,7 @@ addopts = [
     "--cov=data_agent",
     "--cov-report=term-missing",
     "--cov-report=xml",
+    "--cov-fail-under=90",
 ]
 filterwarnings = ["error", "ignore::DeprecationWarning:httpx.*"]
 markers = [
