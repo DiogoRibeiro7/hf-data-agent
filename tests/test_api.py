@@ -132,3 +132,10 @@ class TestUI:
         response = client.get("/")
         assert response.status_code == 200
         assert "HF DATA AGENT" in response.text
+
+    def test_the_page_never_assigns_innerhtml(self, client):
+        """Answers and knowledge-base source names are both influenced by
+        ingested documents, so the page must render them as text, not markup."""
+        page = client.get("/").text
+        assert "innerHTML" not in page
+        assert "textContent" in page

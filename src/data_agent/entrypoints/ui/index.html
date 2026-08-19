@@ -11,46 +11,85 @@
     main { width:min(760px,100%); padding:24px; }
     h1 { font-size:18px; color:#7ee0c8; letter-spacing:.04em; }
     #log { display:flex; flex-direction:column; gap:12px; margin:16px 0; }
-    .msg { padding:12px 14px; border-radius:10px; white-space:pre-wrap; }
+    .msg { padding:12px 14px; border-radius:10px; white-space:pre-wrap;
+      overflow-wrap:anywhere; }
     .you { background:#161b22; border:1px solid #21262d; }
     .bot { background:#10211c; border:1px solid #1c3b32; }
-    .src { font-size:12px; color:#9aa7b2; margin-top:6px; }
+    .err { background:#2a1416; border:1px solid #5c2a2f; color:#ffb4ab; }
+    .src { font-size:12px; color:#9aa7b2; margin-top:6px; white-space:normal; }
     form { display:flex; gap:8px; }
     input { flex:1; padding:12px; border-radius:10px; border:1px solid #21262d;
       background:#0d1117; color:#e6edf3; }
     button { padding:12px 18px; border:0; border-radius:10px; cursor:pointer;
       background:#f0b429; color:#0d1117; font-weight:600; }
+    button[disabled] { opacity:.5; cursor:progress; }
   </style>
 </head>
 <body>
   <main>
     <h1>HF DATA AGENT</h1>
-    <div id="log"></div>
+    <div id="log" role="log" aria-live="polite"></div>
     <form id="f">
-      <input id="q" placeholder="Ask about your data…" autocomplete="off" />
-      <button>Ask</button>
+      <input id="q" placeholder="Ask about your data…" autocomplete="off"
+             aria-label="Question" />
+      <button id="send">Ask</button>
     </form>
   </main>
   <script>
     const log = document.getElementById("log");
-    const add = (cls, html) => {
-      const d = document.createElement("div");
-      d.className = "msg " + cls; d.innerHTML = html; log.appendChild(d);
-      d.scrollIntoView({ behavior: "smooth" });
-    };
-    document.getElementById("f").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const q = document.getElementById("q").value.trim();
-      if (!q) return;
-      add("you", q); document.getElementById("q").value = "";
-      const r = await fetch("/ask", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, entrypoint: "ui" }),
-      });
-      const data = await r.json();
-      const srcs = [...new Set((data.contexts || []).map(c => c.source))];
-      const tail = srcs.length ? `<div class="src">sources: ${srcs.join(", ")}</div>` : "";
-      add("bot", data.answer.replace(/</g, "&lt;") + tail);
+    const input = document.getElementById("q");
+    const send = document.getElementById("send");
+
+    // Everything rendered here — the question, the model's answer, and the
+    // knowledge-base source names — is untrusted: answers and source names can
+    // both be influenced by ingested documents. Text goes in as text, never as
+    // markup, so nothing on this page can be turned into an injection vector.
+    function add(cls, text, sources) {
+      const bubble = document.createElement("div");
+      bubble.className = "msg " + cls;
+      bubble.textContent = text;
+      if (sources && sources.length) {
+        const cite = document.createElement("div");
+        cite.className = "src";
+        cite.textContent = "sources: " + sources.join(", ");
+        bubble.appendChild(cite);
+      }
+      log.appendChild(bubble);
+      bubble.scrollIntoView({ behavior: "smooth" });
+      return bubble;
+    }
+
+    document.getElementById("f").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const question = input.value.trim();
+      if (!question) return;
+
+      add("you", question);
+      input.value = "";
+      send.disabled = true;
+      const pending = add("bot", "…");
+
+      try {
+        const response = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, entrypoint: "ui" }),
+        });
+        if (!response.ok) {
+          const detail = await response.text();
+          throw new Error(`${response.status} ${response.statusText} — ${detail}`);
+        }
+        const data = await response.json();
+        const sources = [...new Set((data.contexts || []).map((c) => c.source))];
+        pending.remove();
+        add("bot", data.answer, sources);
+      } catch (error) {
+        pending.remove();
+        add("err", "Request failed: " + error.message);
+      } finally {
+        send.disabled = false;
+        input.focus();
+      }
     });
   </script>
 </body>
