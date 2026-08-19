@@ -27,7 +27,9 @@ class HashingEmbedder:
     def embed(self, text: str) -> list[float]:
         vec = [0.0] * self.dim
         for tok in _TOKEN.findall(text.lower()):
-            h = int(hashlib.md5(tok.encode()).hexdigest(), 16)
+            # Not a security primitive: md5 is used purely as a fast, stable
+            # bucket function for the hashing trick.
+            h = int(hashlib.md5(tok.encode(), usedforsecurity=False).hexdigest(), 16)
             vec[h % self.dim] += 1.0
         norm = math.sqrt(sum(v * v for v in vec)) or 1.0
         return [v / norm for v in vec]

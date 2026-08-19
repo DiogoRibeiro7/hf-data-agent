@@ -28,7 +28,12 @@ class AirflowSource:
         self.auth = auth
 
     def query(self, statement: str) -> QueryResult:
-        path = "/api/v1/dags" if statement.strip() in {"", "list"} else f"/api/v1/dags/{statement.strip()}/dagRuns"
+        dag_id = statement.strip()
+        path = (
+            "/api/v1/dags"
+            if dag_id in {"", "list"}
+            else f"/api/v1/dags/{dag_id}/dagRuns"
+        )
         resp = httpx.get(self.base_url + path, auth=self.auth, timeout=30.0)
         resp.raise_for_status()
         data = resp.json()

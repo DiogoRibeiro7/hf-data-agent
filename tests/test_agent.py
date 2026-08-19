@@ -41,7 +41,8 @@ def test_ingest_and_retrieve(settings):
     ingest([_ListSource(docs)], settings)
     rt = Runtime(settings)
     hits = rt.retriever.retrieve("when does the revenue dag run")
-    assert hits and "revenue" in hits[0].text.lower()
+    assert hits
+    assert "revenue" in hits[0].text.lower()
 
 
 @pytest.mark.asyncio
@@ -55,7 +56,13 @@ async def test_mock_provider_grounds_on_context(settings):
 
 @pytest.mark.asyncio
 async def test_orchestrator_end_to_end(settings):
-    docs = [Document(id="1", text="Quarterly board numbers come from the revenue table.", source="kb")]
+    docs = [
+        Document(
+            id="1",
+            text="Quarterly board numbers come from the revenue table.",
+            source="kb",
+        )
+    ]
     ingest([_ListSource(docs)], settings)
     rt = Runtime(settings)
     reply = await Orchestrator(rt).answer("where do board numbers come from?")
@@ -82,5 +89,9 @@ def test_api_health_and_tool(settings, monkeypatch):
 
     client = TestClient(app_mod.app)
     assert client.get("/health").json()["status"] == "ok"
-    r = client.post("/tool", json={"name": "warehouse_query", "args": {"sql": "select * from revenue"}})
-    assert r.status_code == 200 and "EMEA" in r.json()["result"]
+    r = client.post(
+        "/tool",
+        json={"name": "warehouse_query", "args": {"sql": "select * from revenue"}},
+    )
+    assert r.status_code == 200
+    assert "EMEA" in r.json()["result"]

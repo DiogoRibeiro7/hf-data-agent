@@ -12,6 +12,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 
+from data_agent import __version__
 from data_agent.api.schemas import (
     AskRequest,
     AskResponse,
@@ -23,7 +24,7 @@ from data_agent.mcp.tools import TOOLS
 from data_agent.orchestrator.agent import Orchestrator
 from data_agent.runtime import get_runtime
 
-app = FastAPI(title="HF Data Agent", version="0.1.0")
+app = FastAPI(title="HF Data Agent", version=__version__)
 _UI = Path(__file__).resolve().parent.parent / "entrypoints" / "ui" / "index.html"
 
 
@@ -57,8 +58,8 @@ def tool(req: ToolRequest) -> ToolResponse:
     fn, _ = entry
     try:
         return ToolResponse(result=fn(get_runtime(), **req.args))
-    except Exception as exc:  # noqa: BLE001 - surface adapter errors to the caller
-        raise HTTPException(500, str(exc))
+    except Exception as exc:  # surface adapter errors to the caller
+        raise HTTPException(500, str(exc)) from exc
 
 
 @app.get("/", response_class=HTMLResponse)

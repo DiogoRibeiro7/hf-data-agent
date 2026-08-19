@@ -12,7 +12,8 @@ class MockProvider:
         user = next((m for m in reversed(messages) if m.role == "user"), None)
         context = next((m for m in messages if m.role == "system"), None)
         q = user.content.strip() if user else ""
-        grounded = "context provided" if (context and "CONTEXT" in context.content) else "no retrieved context"
+        has_context = bool(context and "CONTEXT" in context.content)
+        grounded = "context provided" if has_context else "no retrieved context"
         return (
             f"[mock-llm] I received your question ({grounded}). "
             f"Set DA_MODEL_BACKEND=transformers|openai_compatible|hf_inference for real answers.\n"

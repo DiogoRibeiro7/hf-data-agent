@@ -42,7 +42,9 @@ class Settings(BaseSettings):
     spark_master: str = "local[*]"
 
     # ---- API ----
-    api_host: str = "0.0.0.0"
+    # Binds every interface so the container is reachable; set 127.0.0.1 for
+    # local-only use. The API ships without auth — see SECURITY.md.
+    api_host: str = "0.0.0.0"  # noqa: S104
     api_port: int = 8000
 
     # ---- Slack entrypoint ----

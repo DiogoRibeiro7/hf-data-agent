@@ -32,25 +32,50 @@ class VectorStore:
         if self.path.exists():
             self.load()
 
+    @property
+    def dim(self) -> int | None:
+        """Embedding width of the stored vectors, or None while empty."""
+        return len(self._chunks[0].embedding) if self._chunks else None
+
     def add(self, chunks: list[Chunk]) -> None:
         self._chunks.extend(chunks)
 
+    def clear(self) -> None:
+        """Drop every chunk. Ingestion rebuilds from scratch rather than appending."""
+        self._chunks = []
+
     def search(self, query_embedding: list[float], top_k: int) -> list[Hit]:
+        self._check_dim(len(query_embedding))
         hits = [Hit(c, _cosine(query_embedding, c.embedding)) for c in self._chunks]
         hits.sort(key=lambda h: h.score, reverse=True)
         return hits[:top_k]
+
+    def _check_dim(self, query_dim: int) -> None:
+        """Guard against querying a store built by a different embedder.
+
+        Without this the cosine loop would silently zip over the shorter vector
+        and return a plausible-looking score computed from a prefix.
+        """
+        if self.dim is not None and query_dim != self.dim:
+            raise ValueError(
+                f"Embedding dimension mismatch: the query is {query_dim}-dimensional but "
+                f"{self.path} holds {self.dim}-dimensional vectors. The store was built "
+                f"with a different embedder — re-run ingestion (`make ingest`) after "
+                f"changing DA_EMBEDDER_BACKEND or DA_EMBEDDER_MODEL."
+            )
 
     def __len__(self) -> int:
         return len(self._chunks)
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps([asdict(c) for c in self._chunks]))
+        self.path.write_text(json.dumps([asdict(c) for c in self._chunks]), encoding="utf-8")
 
     def load(self) -> None:
-        self._chunks = [Chunk(**c) for c in json.loads(self.path.read_text())]
+        raw = json.loads(self.path.read_text(encoding="utf-8"))
+        self._chunks = [Chunk(**c) for c in raw]
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
     # embeddings are stored L2-normalised, so dot product == cosine.
-    return sum(x * y for x, y in zip(a, b))
+    return sum(x * y for x, y in zip(a, b, strict=True))
