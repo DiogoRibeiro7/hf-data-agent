@@ -1,0 +1,22 @@
+services:
+  agent-api:
+    build: .
+    ports: ["8000:8000"]
+    env_file: .env
+    environment:
+      DA_MODEL_BACKEND: openai_compatible
+      DA_MODEL_BASE_URL: http://model:8000/v1
+    depends_on: [model]
+    volumes: ["./data:/app/data"]
+
+  # Open HF model served behind an OpenAI-compatible API.
+  # Needs a GPU; drop this service and use DA_MODEL_BACKEND=mock|hf_inference otherwise.
+  model:
+    image: vllm/vllm-openai:latest
+    command: ["--model", "Qwen/Qwen2.5-7B-Instruct"]
+    ports: ["8001:8000"]
+    volumes: ["~/.cache/huggingface:/root/.cache/huggingface"]
+    deploy:
+      resources:
+        reservations:
+          devices: [{ driver: nvidia, count: 1, capabilities: [gpu] }]

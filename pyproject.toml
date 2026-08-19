@@ -1,0 +1,42 @@
+[project]
+name = "hf-data-agent"
+version = "0.1.0"
+description = "Open-source-LLM data agent: multi-entrypoint -> Agent API -> HF model, with RAG + live data platform tools."
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "httpx>=0.27",
+    "sqlalchemy>=2.0",
+]
+
+[project.optional-dependencies]
+transformers = ["transformers>=4.44", "torch>=2.2", "accelerate>=0.30"]
+embeddings = ["sentence-transformers>=3.0"]
+mcp = ["mcp>=1.2"]
+slack = ["slack-bolt>=1.18"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.4"]
+all = ["hf-data-agent[transformers,embeddings,mcp,slack,dev]"]
+
+[project.scripts]
+data-agent-api = "data_agent.entrypoints.run_api:main"
+data-agent-mcp-local = "data_agent.entrypoints.mcp_local:main"
+data-agent-mcp-remote = "data_agent.entrypoints.mcp_remote:main"
+data-agent-slack = "data_agent.entrypoints.slack_app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/data_agent"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+src = ["src"]

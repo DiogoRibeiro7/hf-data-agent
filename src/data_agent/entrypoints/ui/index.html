@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HF Data Agent</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin:0; font:15px/1.5 ui-sans-serif,system-ui,sans-serif;
+      background:#0d1117; color:#e6edf3; display:flex; justify-content:center; }
+    main { width:min(760px,100%); padding:24px; }
+    h1 { font-size:18px; color:#7ee0c8; letter-spacing:.04em; }
+    #log { display:flex; flex-direction:column; gap:12px; margin:16px 0; }
+    .msg { padding:12px 14px; border-radius:10px; white-space:pre-wrap; }
+    .you { background:#161b22; border:1px solid #21262d; }
+    .bot { background:#10211c; border:1px solid #1c3b32; }
+    .src { font-size:12px; color:#9aa7b2; margin-top:6px; }
+    form { display:flex; gap:8px; }
+    input { flex:1; padding:12px; border-radius:10px; border:1px solid #21262d;
+      background:#0d1117; color:#e6edf3; }
+    button { padding:12px 18px; border:0; border-radius:10px; cursor:pointer;
+      background:#f0b429; color:#0d1117; font-weight:600; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>HF DATA AGENT</h1>
+    <div id="log"></div>
+    <form id="f">
+      <input id="q" placeholder="Ask about your data…" autocomplete="off" />
+      <button>Ask</button>
+    </form>
+  </main>
+  <script>
+    const log = document.getElementById("log");
+    const add = (cls, html) => {
+      const d = document.createElement("div");
+      d.className = "msg " + cls; d.innerHTML = html; log.appendChild(d);
+      d.scrollIntoView({ behavior: "smooth" });
+    };
+    document.getElementById("f").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const q = document.getElementById("q").value.trim();
+      if (!q) return;
+      add("you", q); document.getElementById("q").value = "";
+      const r = await fetch("/ask", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: q, entrypoint: "ui" }),
+      });
+      const data = await r.json();
+      const srcs = [...new Set((data.contexts || []).map(c => c.source))];
+      const tail = srcs.length ? `<div class="src">sources: ${srcs.join(", ")}</div>` : "";
+      add("bot", data.answer.replace(/</g, "&lt;") + tail);
+    });
+  </script>
+</body>
+</html>
