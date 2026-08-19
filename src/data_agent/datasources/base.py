@@ -14,6 +14,8 @@ from typing import Any, Protocol
 class QueryResult:
     columns: list[str]
     rows: list[list[Any]]
+    #: True when the source held more rows than it was willing to return.
+    truncated: bool = False
 
     def to_markdown(self, limit: int = 20) -> str:
         if not self.rows:
@@ -21,7 +23,10 @@ class QueryResult:
         head = "| " + " | ".join(self.columns) + " |"
         sep = "| " + " | ".join("---" for _ in self.columns) + " |"
         body = "\n".join("| " + " | ".join(str(c) for c in r) + " |" for r in self.rows[:limit])
-        return f"{head}\n{sep}\n{body}"
+        table = f"{head}\n{sep}\n{body}"
+        if self.truncated or len(self.rows) > limit:
+            table += f"\n\n_showing {min(limit, len(self.rows))} row(s); result truncated._"
+        return table
 
 
 class DataSource(Protocol):

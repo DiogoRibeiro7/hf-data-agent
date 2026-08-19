@@ -38,7 +38,13 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 4
 
     # ---- Data platform (online sync calls) ----
+    # Use a database user holding SELECT and nothing else: the SQL guard is a
+    # safety net, the grant is the boundary. See SECURITY.md.
     warehouse_dsn: str = "sqlite:///data/warehouse.db"
+    #: Row cap applied to every warehouse query.
+    warehouse_max_rows: int = 1000
+    #: Comma-separated table allow-list. Empty means "no table restriction".
+    warehouse_allowed_tables: str = ""
     airflow_base_url: str = "http://localhost:8080"
     spark_master: str = "local[*]"
 
@@ -51,6 +57,13 @@ class Settings(BaseSettings):
     # ---- Slack entrypoint ----
     slack_bot_token: str = ""
     slack_signing_secret: str = ""
+
+    @property
+    def allowed_tables(self) -> frozenset[str] | None:
+        """Parsed `warehouse_allowed_tables`, or None when unrestricted."""
+        names = {n.strip().lower() for n in self.warehouse_allowed_tables.split(",")}
+        names.discard("")
+        return frozenset(names) or None
 
 
 @lru_cache
