@@ -5,8 +5,12 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 
 from data_agent.runtime import Runtime
+
+#: Tools take the runtime plus keyword arguments and return rendered text.
+ToolFn = Callable[..., str]
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +49,7 @@ def list_dags(rt: Runtime, dag_id: str = "list") -> str:
 
 
 # name -> (callable, human-readable description) for MCP registration.
-TOOLS = {
+TOOLS: dict[str, tuple[ToolFn, str]] = {
     "knowledge_search": (knowledge_search, "Search company knowledge base (RAG)."),
     "warehouse_query": (warehouse_query, "Run read-only SQL on the warehouse."),
     "list_dags": (list_dags, "List Airflow DAGs / runs."),

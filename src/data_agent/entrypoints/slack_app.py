@@ -8,6 +8,8 @@ Run: python -m data_agent.entrypoints.slack_app
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
+from typing import Any
 
 from data_agent.config import get_settings
 from data_agent.observability import configure_logging
@@ -25,7 +27,7 @@ def main() -> None:
     orchestrator = Orchestrator(get_runtime())
 
     @app.event("app_mention")
-    def on_mention(event, say):
+    def on_mention(event: dict[str, Any], say: Callable[..., Any]) -> None:
         text = event.get("text", "").split(">", 1)[-1].strip()
         reply = asyncio.run(orchestrator.answer(text))
         cites = ", ".join(sorted({c.source for c in reply.contexts}))

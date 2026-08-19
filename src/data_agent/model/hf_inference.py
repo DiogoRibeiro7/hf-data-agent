@@ -31,7 +31,8 @@ class HFInferenceProvider:
             },
         )
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"].strip()
+        content: str = resp.json()["choices"][0]["message"]["content"]
+        return content.strip()
 
     async def aclose(self) -> None:
         """Close the underlying HTTP client."""

@@ -16,7 +16,7 @@ import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
@@ -90,7 +90,7 @@ async def correlate_requests(
 
 
 @app.get("/health")
-def health(rt: RuntimeDep) -> dict:
+def health(rt: RuntimeDep) -> dict[str, Any]:
     return {
         "status": "ok",
         "version": __version__,

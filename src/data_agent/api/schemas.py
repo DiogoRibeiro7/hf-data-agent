@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from typing import Any
+
+from pydantic import BaseModel, Field
 
 
 class AskRequest(BaseModel):
@@ -21,7 +23,7 @@ class AskResponse(BaseModel):
 
 class ToolRequest(BaseModel):
     name: str
-    args: dict = {}
+    args: dict[str, Any] = Field(default_factory=dict)
 
 
 class ToolResponse(BaseModel):

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -16,7 +17,7 @@ class Chunk:
     id: str
     text: str
     source: str
-    metadata: dict
+    metadata: dict[str, Any]
     embedding: list[float]
 
 

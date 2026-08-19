@@ -44,7 +44,8 @@ class SentenceTransformerEmbedder:
         self.dim = self._model.get_sentence_embedding_dimension()
 
     def embed(self, text: str) -> list[float]:
-        return self._model.encode(text, normalize_embeddings=True).tolist()
+        vector: list[float] = self._model.encode(text, normalize_embeddings=True).tolist()
+        return vector
 
 
 def build_embedder(settings: Settings) -> Embedder:

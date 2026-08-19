@@ -37,7 +37,8 @@ class TransformersProvider:
             do_sample=self.settings.model_temperature > 0,
         )
         gen = out[0][inputs["input_ids"].shape[-1] :]
-        return self.tokenizer.decode(gen, skip_special_tokens=True).strip()
+        decoded: str = self.tokenizer.decode(gen, skip_special_tokens=True)
+        return decoded.strip()
 
     async def generate(self, messages: Sequence[Message]) -> str:
         # transformers is blocking; keep the event loop responsive.

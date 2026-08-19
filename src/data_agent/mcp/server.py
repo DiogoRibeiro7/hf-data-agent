@@ -8,11 +8,16 @@ Install: pip install "hf-data-agent[mcp]"
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from data_agent.orchestrator.agent import Orchestrator
 from data_agent.runtime import get_runtime
 
+if TYPE_CHECKING:
+    from mcp.server.fastmcp import FastMCP
 
-def build_mcp():
+
+def build_mcp() -> FastMCP:
     from mcp.server.fastmcp import FastMCP
 
     mcp = FastMCP("hf-data-agent")

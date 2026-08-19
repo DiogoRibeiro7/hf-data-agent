@@ -156,6 +156,14 @@ strict = true
 warn_unreachable = true
 pretty = true
 # Optional heavy backends are imported lazily and ship no stubs.
+# These modules bridge to the optional mcp / slack extras. Those packages are not
+# installed in the type-check environment, so their decorators arrive untyped and
+# every decorated handler is flagged. The bridges are thin and delegate straight
+# into typed code, so only this specific check is relaxed, and only here.
+[[tool.mypy.overrides]]
+module = ["data_agent.mcp.server", "data_agent.entrypoints.slack_app"]
+disallow_untyped_decorators = false
+
 [[tool.mypy.overrides]]
 module = [
     "transformers.*",
