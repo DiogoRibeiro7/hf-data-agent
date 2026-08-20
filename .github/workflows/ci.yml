@@ -127,6 +127,31 @@ jobs:
           print('entrypoints import cleanly')
           "
 
+      # The remote transport is only authenticated because mcp_remote wraps it.
+      # Assert the wrapped app really refuses an anonymous request.
+      - name: The bearer gate rejects an unauthenticated MCP request
+        run: |
+          python -c "
+          import anyio
+          from data_agent.mcp.auth import BearerAuthMiddleware
+          from data_agent.mcp.server import build_mcp
+
+          app = BearerAuthMiddleware(build_mcp().streamable_http_app(), 'ci-token')
+          sent = []
+
+          async def receive():
+              return {'type': 'http.request', 'body': b'', 'more_body': False}
+
+          async def send(message):
+              sent.append(message)
+
+          scope = {'type': 'http', 'path': '/mcp', 'method': 'POST', 'headers': []}
+          anyio.run(app, scope, receive, send)
+          status = next(m['status'] for m in sent if m['type'] == 'http.response.start')
+          assert status == 401, f'expected 401, got {status}'
+          print('anonymous MCP request rejected with', status)
+          "
+
   smoke:
     name: Offline path end to end
     runs-on: ubuntu-latest

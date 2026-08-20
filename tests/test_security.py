@@ -169,14 +169,13 @@ class TestMcpBindingGuard:
         require_safe_mcp_binding(Settings(mcp_host="127.0.0.1"))
 
     def test_public_bind_is_refused(self):
-        with pytest.raises(UnsafeBindingError, match="no authentication of its own"):
+        with pytest.raises(UnsafeBindingError, match="without authentication"):
             require_safe_mcp_binding(Settings(mcp_host="0.0.0.0"))
 
-    def test_an_api_token_does_not_unlock_it(self):
-        """DA_API_TOKEN protects the HTTP API, not the MCP transport. Treating it
-        as if it did would be the dangerous kind of convenience."""
-        with pytest.raises(UnsafeBindingError):
-            require_safe_mcp_binding(Settings(mcp_host="0.0.0.0", api_token=TOKEN))
+    def test_a_token_unlocks_it(self):
+        """The mcp_remote entrypoint wraps the transport in BearerAuthMiddleware,
+        so DA_API_TOKEN really does protect it — see test_mcp_auth.py."""
+        require_safe_mcp_binding(Settings(mcp_host="0.0.0.0", api_token=TOKEN))
 
     def test_the_explicit_opt_out_is_honoured(self):
         require_safe_mcp_binding(Settings(mcp_host="0.0.0.0", allow_unauthenticated=True))

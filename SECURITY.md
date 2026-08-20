@@ -34,13 +34,19 @@ quickstart needs no configuration. The bind address carries the safety instead:
 The container image sets `DA_API_HOST=0.0.0.0` because `-p` cannot reach a
 loopback bind, so running it requires one of those two decisions explicitly.
 
-**The remote MCP transport has no bearer authentication.** FastMCP's built-in
-auth is an OAuth resource-server model — it expects an issuer URL and a resource
-server URL, not a shared secret — so `DA_API_TOKEN` does not protect it, and
-wiring a fake issuer would advertise metadata endpoints that do not exist.
-`DA_MCP_HOST` therefore defaults to loopback and startup refuses a routable bind
-unless `DA_ALLOW_UNAUTHENTICATED=true`. To expose MCP, put an authenticating
-proxy in front of it, or configure FastMCP's OAuth resource server properly.
+The remote MCP transport takes the **same** token. The MCP library's own auth
+is an OAuth resource-server model — it rejects a token verifier unless given an
+issuer URL and a resource server URL — and this project authenticates with one
+shared secret, so the gate sits in front of the transport instead
+(`mcp/auth.py`) rather than inventing an OAuth issuer to satisfy the library.
+
+That gate is applied by the `mcp_remote` entrypoint. Serving
+`build_mcp().streamable_http_app()` yourself, or running `mcp_local` over stdio,
+does not go through it — stdio inherits the trust of whoever launched the
+process, which is the usual MCP model.
+
+`DA_MCP_HOST` defaults to loopback and startup refuses a routable bind with
+neither a token nor `DA_ALLOW_UNAUTHENTICATED=true`.
 
 ### SQL execution is guarded, but the guard is not a sandbox
 

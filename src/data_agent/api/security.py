@@ -117,20 +117,24 @@ def require_safe_binding(settings: Settings) -> None:
 def require_safe_mcp_binding(settings: Settings) -> None:
     """Refuse to expose the remote MCP transport on a routable interface.
 
-    Unlike the HTTP API, this transport has **no bearer authentication**.
-    FastMCP's built-in auth is an OAuth resource-server model — it wants an
-    issuer URL and a resource server URL, not a shared secret — so
-    `DA_API_TOKEN` does not protect it and pretending otherwise would be worse
-    than saying so. Exposing it therefore has to be a deliberate choice.
+    The same `DA_API_TOKEN` guards this transport as the HTTP API, but it is
+    enforced by `mcp.auth.BearerAuthMiddleware` wrapped around the ASGI app
+    rather than by the MCP library, whose own auth is OAuth-shaped. That
+    middleware is applied by the mcp_remote entrypoint, so serving the transport
+    some other way leaves it open no matter what this check says.
 
     Raises:
-        UnsafeBindingError: for a non-loopback bind without an explicit opt-in.
+        UnsafeBindingError: for a non-loopback bind with neither a token nor an
+            explicit opt-in.
     """
-    if settings.allow_unauthenticated or is_loopback(settings.mcp_host):
+    if settings.api_token or settings.allow_unauthenticated:
+        return
+    if is_loopback(settings.mcp_host):
         return
     raise UnsafeBindingError(
-        f"refusing to bind the remote MCP transport to {settings.mcp_host}: it has "
-        f"no authentication of its own, and its tools can query your warehouse.\n"
-        f"Keep DA_MCP_HOST=127.0.0.1 and reach it through an authenticating proxy, "
-        f"or set DA_ALLOW_UNAUTHENTICATED=true if the port is already protected."
+        f"refusing to bind the remote MCP transport to {settings.mcp_host} without "
+        f"authentication: its tools can query your warehouse.\n"
+        f"Set DA_API_TOKEN to require a bearer token, keep DA_MCP_HOST=127.0.0.1 "
+        f"for local-only use, or set DA_ALLOW_UNAUTHENTICATED=true if the port is "
+        f"already protected by something else."
     )

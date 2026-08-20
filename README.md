@@ -79,9 +79,9 @@ Read [SECURITY.md](SECURITY.md) before exposing this beyond localhost. In short:
   carries the safety: `DA_API_HOST` defaults to loopback and the server
   **refuses to start** on a routable interface without a token, unless
   `DA_ALLOW_UNAUTHENTICATED=true`.
-- **The remote MCP transport has no bearer auth** — FastMCP's is OAuth-shaped,
-  not a shared secret — so it binds loopback and refuses to be published
-  without the same explicit opt-in. Put a proxy in front of it.
+- **The remote MCP transport takes the same token**, enforced by an ASGI gate
+  in front of it rather than by the MCP library, whose own auth is OAuth-shaped.
+  It binds loopback by default and refuses a routable bind without a token.
 - **`warehouse_query` is guarded, not sandboxed.** Every statement must be a
   single read-only query; destructive verbs, stacked statements and
   data-modifying CTEs are rejected. Even so, point `DA_WAREHOUSE_DSN` at a
@@ -218,7 +218,7 @@ Every setting is an environment variable prefixed `DA_`; see
 | `DA_API_HOST`                    | `127.0.0.1`                   | routable binds need a token          |
 | `DA_API_TOKEN`                   | *(empty)*                     | bearer token for `/ask` and `/tool`  |
 | `DA_ALLOW_UNAUTHENTICATED`       | `false`                       | opt out when a proxy protects the port |
-| `DA_MCP_HOST` / `DA_MCP_PORT`    | `127.0.0.1` / `8001`          | remote MCP; no auth of its own       |
+| `DA_MCP_HOST` / `DA_MCP_PORT`    | `127.0.0.1` / `8001`          | remote MCP; uses `DA_API_TOKEN` too  |
 
 Changing `DA_EMBEDDER_BACKEND` or `DA_EMBEDDER_MODEL` changes the embedding
 width, so re-run `make ingest` afterwards. Querying a store built by a

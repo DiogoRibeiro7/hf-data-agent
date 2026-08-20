@@ -9,6 +9,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Security
 
+- **The remote MCP transport now requires the same bearer token.** The MCP
+  library only offers OAuth resource-server auth — it rejects a token verifier
+  unless handed an issuer URL and a resource server URL — so rather than invent
+  an issuer and advertise discovery metadata for an authorization server that
+  does not exist, the gate wraps the ASGI app instead (`mcp/auth.py`). The
+  `mcp_remote` entrypoint now serves the transport through uvicorn to apply it.
+  Verified end to end: no token gives 401, the right token completes an MCP
+  initialize handshake.
+
 - **Bearer authentication on the HTTP API** (roadmap item 07). `/ask` and
   `/tool` require `DA_API_TOKEN` when it is set, compared in constant time so a
   wrong token cannot be narrowed down by timing. `/health` stays open for probes
