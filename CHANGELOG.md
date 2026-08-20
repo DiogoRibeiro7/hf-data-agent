@@ -51,6 +51,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- `httpx2` as a test dependency: starlette 1.6 deprecates driving `TestClient`
+  with `httpx`, and the suite runs with `filterwarnings = error`.
 - MIT `LICENSE`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, issue
   forms, a pull request template, and Dependabot configuration.
 - Structured logging with request correlation (`observability.py`): an
@@ -70,7 +72,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Ruff expanded from its default rules to 17 rule families (bugbear, bandit,
   pathlib, async, pytest-style and others), with `ruff format` enforced and
   pre-commit hooks including gitleaks.
-- The test suite went from 5 tests at 62% coverage to 158 at 96%, with a 90%
+- The test suite went from 5 tests at 62% coverage to 159 at 96%, with a 90%
   floor enforced in CI, split into focused modules with shared fixtures.
 - The container is a multi-stage build running as an unprivileged user, with a
   healthcheck and OCI labels; `docker compose up` no longer requires a `.env`.

@@ -43,6 +43,10 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-cov>=5.0",
+    # starlette >=1.6 deprecates driving TestClient with httpx and asks for
+    # httpx2. Tests run with filterwarnings=error, so the deprecation is a hard
+    # failure rather than noise. Test-only: the package itself still uses httpx.
+    "httpx2>=2.0",
     "ruff>=0.6",
     "mypy>=1.11",
     "pre-commit>=3.7",
