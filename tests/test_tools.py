@@ -24,10 +24,20 @@ class ListSource:
 
 class TestRegistry:
     def test_every_tool_has_a_description(self):
-        assert all(desc for _, desc in TOOLS.values())
+        assert all(spec.description for spec in TOOLS.values())
 
     def test_every_tool_is_callable(self):
-        assert all(callable(fn) for fn, _ in TOOLS.values())
+        assert all(callable(spec.fn) for spec in TOOLS.values())
+
+    def test_the_registry_key_matches_the_spec_name(self):
+        assert all(key == spec.name for key, spec in TOOLS.items())
+
+    def test_required_arguments_are_declared_parameters(self):
+        for spec in TOOLS.values():
+            assert set(spec.required) <= set(spec.parameters), spec.name
+
+    def test_every_parameter_is_documented(self):
+        assert all(all(spec.parameters.values()) for spec in TOOLS.values())
 
     def test_the_expected_tools_are_registered(self):
         assert set(TOOLS) == {"knowledge_search", "warehouse_query", "list_dags"}

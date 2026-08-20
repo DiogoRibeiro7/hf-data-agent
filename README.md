@@ -65,6 +65,37 @@ Read [SECURITY.md](SECURITY.md) before exposing this beyond localhost. In short:
 - **Ingested content reaches the model**, so treat every knowledge source as
   semi-trusted: prompt injection in a document can attempt to steer tool calls.
 
+## How it answers
+
+The orchestrator runs a bounded tool-calling loop rather than a single shot:
+
+1. retrieve context from the knowledge base and ground the system prompt
+2. let the model either answer, or request a tool as a JSON object
+3. execute the tool, feed the result back as an OBSERVATION, repeat
+4. stop at `DA_MAX_TOOL_STEPS` and force a final answer
+
+A model that never asks for a tool simply answers — that is the plain RAG path,
+still there as the zero-tool case. A model that asks for something impossible
+(unknown tool, missing argument, SQL the guard rejects) gets the error back as
+an observation and can correct itself; a bad call never fails the request.
+
+`/ask` returns the trace, so you can see how an answer was reached:
+
+```jsonc
+{
+  "answer": "AMER booked $1,866,500 and EMEA $850,500.",
+  "contexts": [...],
+  "steps": [
+    { "tool": "warehouse_query", "args": {"sql": "select ..."}, "ok": true, "result": "| region | ..." }
+  ],
+  "step_limit_reached": false
+}
+```
+
+Tools are declared once in `mcp/tools.py` as `ToolSpec`s, so the same
+definitions drive the prompt catalogue, the `/tool` route and the MCP server.
+Set `DA_ENABLE_TOOLS=false` to restore the original single-shot behaviour.
+
 ## Plug in a real open model
 
 | backend             | how                                                            |
@@ -114,6 +145,8 @@ Every setting is an environment variable prefixed `DA_`; see
 | `DA_EMBEDDER_BACKEND`            | `hashing`                     | `hashing` or `sentence_transformers` |
 | `DA_VECTOR_STORE_PATH`           | `data/vector_store.json`      | where ingestion writes               |
 | `DA_RETRIEVAL_TOP_K`             | `4`                           | chunks injected into the prompt      |
+| `DA_ENABLE_TOOLS`                | `true`                        | `false` = single-shot RAG, no tools  |
+| `DA_MAX_TOOL_STEPS`              | `4`                           | tool calls before an answer is forced|
 | `DA_WAREHOUSE_DSN`               | `sqlite:///data/warehouse.db` | use a read-only database user        |
 | `DA_WAREHOUSE_MAX_ROWS`          | `1000`                        | row cap per query                    |
 | `DA_WAREHOUSE_ALLOWED_TABLES`    | *(empty)*                     | optional table allow-list            |

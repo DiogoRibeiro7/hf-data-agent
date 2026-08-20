@@ -28,6 +28,7 @@ from data_agent.api.schemas import (
     ContextOut,
     ToolRequest,
     ToolResponse,
+    ToolStepOut,
 )
 from data_agent.datasources.sql_guard import UnsafeSQLError
 from data_agent.mcp.tools import TOOLS
@@ -110,6 +111,10 @@ async def ask(req: AskRequest, rt: RuntimeDep) -> AskResponse:
     return AskResponse(
         answer=reply.answer,
         contexts=[ContextOut(source=c.source, score=c.score, text=c.text) for c in reply.contexts],
+        steps=[
+            ToolStepOut(tool=s.tool, args=s.args, result=s.result, ok=s.ok) for s in reply.steps
+        ],
+        step_limit_reached=reply.step_limit_reached,
     )
 
 
@@ -118,10 +123,9 @@ def tool(req: ToolRequest, rt: RuntimeDep) -> ToolResponse:
     entry = TOOLS.get(req.name)
     if entry is None:
         raise HTTPException(404, f"unknown tool {req.name!r}. available: {sorted(TOOLS)}")
-    fn, _ = entry
     logger.info("tool invoked", extra={"tool": req.name, "arg_keys": sorted(req.args)})
     try:
-        return ToolResponse(result=fn(rt, **req.args))
+        return ToolResponse(result=entry.fn(rt, **req.args))
     except UnsafeSQLError as exc:
         logger.warning("tool rejected unsafe sql", extra={"tool": req.name, "reason": str(exc)})
         # The caller sent a statement the read-only guard rejected: their fault, not ours.

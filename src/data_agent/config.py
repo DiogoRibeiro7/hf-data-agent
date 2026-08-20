@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     vector_store_path: str = "data/vector_store.json"
     retrieval_top_k: int = 4
 
+    # ---- Tool-calling loop ----
+    #: False restores the original single-shot RAG behaviour.
+    enable_tools: bool = True
+    #: Maximum tool executions per question, before a final answer is forced.
+    max_tool_steps: int = 4
+    #: Observations longer than this are truncated before going back to the model.
+    tool_result_max_chars: int = 4000
+
     # ---- Data platform (online sync calls) ----
     # Use a database user holding SELECT and nothing else: the SQL guard is a
     # safety net, the grant is the boundary. See SECURITY.md.

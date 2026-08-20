@@ -44,15 +44,24 @@
     // knowledge-base source names — is untrusted: answers and source names can
     // both be influenced by ingested documents. Text goes in as text, never as
     // markup, so nothing on this page can be turned into an injection vector.
-    function add(cls, text, sources) {
+    function note(bubble, label) {
+      const line = document.createElement("div");
+      line.className = "src";
+      line.textContent = label;
+      bubble.appendChild(line);
+      return line;
+    }
+
+    function add(cls, text, sources, steps) {
       const bubble = document.createElement("div");
       bubble.className = "msg " + cls;
       bubble.textContent = text;
+      if (steps && steps.length) {
+        const used = steps.map((s) => (s.ok ? s.tool : s.tool + " (failed)"));
+        note(bubble, "tools: " + used.join(" → "));
+      }
       if (sources && sources.length) {
-        const cite = document.createElement("div");
-        cite.className = "src";
-        cite.textContent = "sources: " + sources.join(", ");
-        bubble.appendChild(cite);
+        note(bubble, "sources: " + sources.join(", "));
       }
       log.appendChild(bubble);
       bubble.scrollIntoView({ behavior: "smooth" });
@@ -82,7 +91,10 @@
         const data = await response.json();
         const sources = [...new Set((data.contexts || []).map((c) => c.source))];
         pending.remove();
-        add("bot", data.answer, sources);
+        const bubble = add("bot", data.answer, sources, data.steps);
+        if (data.step_limit_reached) {
+          note(bubble, "note: stopped at the tool-call limit");
+        }
       } catch (error) {
         pending.remove();
         add("err", "Request failed: " + error.message);

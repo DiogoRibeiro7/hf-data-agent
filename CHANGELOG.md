@@ -51,6 +51,19 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Bounded tool-calling loop** (roadmap item 01). The orchestrator no longer
+  answers in one shot: the model may request `knowledge_search`,
+  `warehouse_query` or `list_dags` as a JSON object, the tool runs, and the
+  result returns as an OBSERVATION for up to `DA_MAX_TOOL_STEPS` rounds before a
+  final answer is forced. A model that asks for nothing just answers, which is
+  the previous RAG path as the zero-tool case, and `DA_ENABLE_TOOLS=false`
+  restores it explicitly. Failed calls — unknown tool, missing argument, SQL the
+  guard rejects — come back as observations the model can correct, so a bad call
+  never fails the request. `/ask` now returns the tool trace and
+  `step_limit_reached`.
+- `ToolSpec` replaces the `(callable, description)` tuple in the registry, so
+  one definition drives the prompt catalogue, the `/tool` route and MCP.
+
 - `httpx2` as a test dependency: starlette 1.6 deprecates driving `TestClient`
   with `httpx`, and the suite runs with `filterwarnings = error`.
 - MIT `LICENSE`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, issue
