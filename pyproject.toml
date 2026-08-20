@@ -37,7 +37,9 @@ Changelog = "https://github.com/DiogoRibeiro7/hf-data-agent/blob/main/CHANGELOG.
 [project.optional-dependencies]
 transformers = ["transformers>=4.44", "torch>=2.2", "accelerate>=0.30"]
 embeddings = ["sentence-transformers>=3.0"]
-mcp = ["mcp>=1.2"]
+# mcp 2.0 removed mcp.server.fastmcp, which mcp/server.py builds on. Pinned
+# below 2 until that migration is done; see the mcp-extra CI job.
+mcp = ["mcp>=1.9,<2"]
 slack = ["slack-bolt>=1.18"]
 dev = [
     "pytest>=8.0",
@@ -143,7 +145,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S105", "S106", "S108", "SLF001"]
+# S104: several tests assert on the 0.0.0.0 binding guard, so they must name it.
+"tests/**" = ["S104", "S105", "S106", "S108", "SLF001"]
 "scripts/**" = ["T201"]  # these are CLIs; printing is the interface
 "evals/**" = ["T201"]    # same: the report is the output
 

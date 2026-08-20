@@ -20,8 +20,12 @@ if TYPE_CHECKING:
 def build_mcp() -> FastMCP:
     from mcp.server.fastmcp import FastMCP
 
-    mcp = FastMCP("hf-data-agent")
     rt = get_runtime()
+    mcp = FastMCP(
+        "hf-data-agent",
+        host=rt.settings.mcp_host,
+        port=rt.settings.mcp_port,
+    )
 
     @mcp.tool()
     async def ask(question: str) -> str:

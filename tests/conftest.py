@@ -7,9 +7,11 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 
+from data_agent.api.app import app
 from data_agent.config import Settings
-from data_agent.runtime import Runtime
+from data_agent.runtime import Runtime, get_runtime
 
 REVENUE_ROWS = [
     ("EMEA", "2026-01", 412000),
@@ -60,3 +62,11 @@ def golden(repo_root: Path) -> dict:
     import json
 
     return json.loads((repo_root / "evals" / "golden.json").read_text(encoding="utf-8"))
+
+
+@pytest.fixture
+def client(runtime):
+    """A client whose app resolves the injected test runtime, never the global one."""
+    app.dependency_overrides[get_runtime] = lambda: runtime
+    yield TestClient(app)
+    app.dependency_overrides.clear()

@@ -74,8 +74,14 @@ curl -s localhost:8000/tool -H 'content-type: application/json' \
 
 Read [SECURITY.md](SECURITY.md) before exposing this beyond localhost. In short:
 
-- **The API and the MCP transports are unauthenticated**, and `DA_API_HOST`
-  defaults to `0.0.0.0`. Put an authenticating proxy in front of them.
+- **`/ask` and `/tool` take a bearer token** when `DA_API_TOKEN` is set. Auth is
+  off by default so the quickstart needs no configuration, so the bind address
+  carries the safety: `DA_API_HOST` defaults to loopback and the server
+  **refuses to start** on a routable interface without a token, unless
+  `DA_ALLOW_UNAUTHENTICATED=true`.
+- **The remote MCP transport has no bearer auth** — FastMCP's is OAuth-shaped,
+  not a shared secret — so it binds loopback and refuses to be published
+  without the same explicit opt-in. Put a proxy in front of it.
 - **`warehouse_query` is guarded, not sandboxed.** Every statement must be a
   single read-only query; destructive verbs, stacked statements and
   data-modifying CTEs are rejected. Even so, point `DA_WAREHOUSE_DSN` at a
@@ -209,6 +215,10 @@ Every setting is an environment variable prefixed `DA_`; see
 | `DA_WAREHOUSE_MAX_ROWS`          | `1000`                        | row cap per query                    |
 | `DA_WAREHOUSE_ALLOWED_TABLES`    | *(empty)*                     | optional table allow-list            |
 | `DA_LOG_LEVEL` / `DA_LOG_FORMAT` | `INFO` / `text`               | `json` emits one object per line     |
+| `DA_API_HOST`                    | `127.0.0.1`                   | routable binds need a token          |
+| `DA_API_TOKEN`                   | *(empty)*                     | bearer token for `/ask` and `/tool`  |
+| `DA_ALLOW_UNAUTHENTICATED`       | `false`                       | opt out when a proxy protects the port |
+| `DA_MCP_HOST` / `DA_MCP_PORT`    | `127.0.0.1` / `8001`          | remote MCP; no auth of its own       |
 
 Changing `DA_EMBEDDER_BACKEND` or `DA_EMBEDDER_MODEL` changes the embedding
 width, so re-run `make ingest` afterwards. Querying a store built by a
@@ -219,10 +229,16 @@ the wrong shape.
 
 ```bash
 docker build -t hf-data-agent .
-docker run --rm -p 8000:8000 -e DA_MODEL_BACKEND=mock hf-data-agent
+
+# Publishing a port makes it routable, so say how it is protected:
+docker run --rm -p 8000:8000 -e DA_API_TOKEN=$(openssl rand -hex 16) hf-data-agent
+# ...or, for a throwaway local demo, opt out explicitly:
+docker run --rm -p 8000:8000 -e DA_ALLOW_UNAUTHENTICATED=true hf-data-agent
 ```
 
-The image is multi-stage and runs as an unprivileged user. `docker compose up`
+Starting it with neither is refused, with a message explaining both options —
+CI asserts that refusal. The image is multi-stage and runs as an unprivileged
+user. `docker compose up`
 additionally starts vLLM serving an open model behind an OpenAI-compatible
 endpoint (needs a GPU; drop that service otherwise).
 

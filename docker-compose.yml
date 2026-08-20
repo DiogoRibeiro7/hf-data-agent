@@ -10,6 +10,9 @@ services:
       DA_MODEL_BACKEND: openai_compatible
       DA_MODEL_BASE_URL: http://model:8000/v1
       DA_LOG_FORMAT: json
+      # Set DA_API_TOKEN in .env to require a bearer token. Without one the
+      # service refuses to start, because the published port is routable.
+      DA_ALLOW_UNAUTHENTICATED: ${DA_ALLOW_UNAUTHENTICATED:-false}
     depends_on: [model]
     volumes: ["./data:/app/data"]
     restart: unless-stopped

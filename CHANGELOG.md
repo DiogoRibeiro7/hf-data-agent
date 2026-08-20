@@ -9,6 +9,19 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Security
 
+- **Bearer authentication on the HTTP API** (roadmap item 07). `/ask` and
+  `/tool` require `DA_API_TOKEN` when it is set, compared in constant time so a
+  wrong token cannot be narrowed down by timing. `/health` stays open for probes
+  but withholds backend detail from anonymous callers.
+- Auth stays off by default so the offline quickstart needs no configuration, so
+  the bind address carries the safety instead: `DA_API_HOST` now defaults to
+  `127.0.0.1` (was `0.0.0.0`), and startup **refuses** a routable bind without a
+  token unless `DA_ALLOW_UNAUTHENTICATED=true`. CI asserts the container refuses.
+- The remote MCP transport binds loopback and refuses a routable bind without
+  the same opt-in. It has **no** bearer auth: FastMCP's is an OAuth
+  resource-server model, not a shared secret, and `DA_API_TOKEN` does not cover
+  it. Said plainly in SECURITY.md rather than implied away.
+
 - `warehouse_query` no longer executes destructive SQL. It was documented as
   read-only but ran whatever it was given: a `DROP TABLE` sent to `POST /tool`
   removed the table and then surfaced as a confusing `ResourceClosedError`. A
@@ -26,6 +39,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   not a substitute for a read-only database grant.
 
 ### Fixed
+
+- The MCP entrypoints were broken against current releases: `mcp` 2.0 removed
+  `mcp.server.fastmcp`, which `mcp/server.py` imports, and the `mcp>=1.2`
+  constraint resolved straight to it. Pinned to `>=1.9,<2` and verified, with a
+  new CI job that installs the extra and builds the server — nothing previously
+  imported it, which is why no job noticed.
 
 - Ingestion is idempotent. `VectorStore` loads any existing store on
   construction and `ingest()` then appended to it, so each `make ingest` added a

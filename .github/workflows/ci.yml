@@ -96,6 +96,37 @@ jobs:
           path: eval-result.json
           if-no-files-found: warn
 
+  mcp-extra:
+    name: Optional mcp extra imports
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: pip install -e ".[mcp]"
+
+      # mcp 2.0 removed mcp.server.fastmcp, and nothing here imported the extra,
+      # so the MCP entrypoints were broken without any job noticing. This builds
+      # the server for real so that cannot happen silently again.
+      - name: Build the MCP server
+        run: |
+          python -c "
+          import importlib.metadata as md
+          print('mcp', md.version('mcp'))
+          from data_agent.mcp.server import build_mcp
+          server = build_mcp()
+          print('built:', server.name)
+          "
+      - name: Entrypoints import
+        run: |
+          python -c "
+          from data_agent.entrypoints import mcp_local, mcp_remote
+          print('entrypoints import cleanly')
+          "
+
   smoke:
     name: Offline path end to end
     runs-on: ubuntu-latest
@@ -176,9 +207,18 @@ jobs:
           tags: hf-data-agent:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: An exposed port with no auth is refused
+        run: |
+          # The image binds 0.0.0.0 so -p works, which makes the port routable.
+          # Starting it with neither a token nor an explicit opt-out must fail.
+          if docker run --rm -e DA_MODEL_BACKEND=mock hf-data-agent:ci; then
+            echo "container started unauthenticated on a routable bind"; exit 1
+          fi
+          echo "refused, as intended"
+
       - name: Serve
         run: |
-          docker run -d --name agent -p 8000:8000 -e DA_MODEL_BACKEND=mock hf-data-agent:ci
+          docker run -d --name agent -p 8000:8000             -e DA_MODEL_BACKEND=mock             -e DA_ALLOW_UNAUTHENTICATED=true             hf-data-agent:ci
           for _ in $(seq 1 30); do
             curl -sf localhost:8000/health >/dev/null && break
             sleep 1

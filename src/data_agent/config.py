@@ -58,10 +58,23 @@ class Settings(BaseSettings):
     spark_master: str = "local[*]"
 
     # ---- API ----
-    # Binds every interface so the container is reachable; set 127.0.0.1 for
-    # local-only use. The API ships without auth — see SECURITY.md.
-    api_host: str = "0.0.0.0"  # noqa: S104
+    #: Loopback by default: /ask and /tool can reach the warehouse, so the
+    #: server must be asked to expose them rather than doing it silently.
+    #: Containers set 0.0.0.0 explicitly and supply a token.
+    api_host: str = "127.0.0.1"
     api_port: int = 8000
+    #: Bearer token required by /ask and /tool. Empty disables authentication,
+    #: which is only permitted on a loopback binding — see api/security.py.
+    api_token: str = ""
+    #: Escape hatch for a port already protected by a proxy or private network.
+    allow_unauthenticated: bool = False
+
+    # ---- Remote MCP entrypoint ----
+    #: Loopback by default. The MCP transport carries no bearer auth of its
+    #: own (see api/security.require_safe_mcp_binding), so exposing it is
+    #: an explicit decision.
+    mcp_host: str = "127.0.0.1"
+    mcp_port: int = 8001
 
     #: Root log level for every entrypoint.
     log_level: str = "INFO"

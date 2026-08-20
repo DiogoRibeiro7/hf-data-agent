@@ -24,9 +24,13 @@ LABEL org.opencontainers.image.title="hf-data-agent" \
       org.opencontainers.image.source="https://github.com/DiogoRibeiro7/hf-data-agent" \
       org.opencontainers.image.licenses="MIT"
 
+# A container has to bind all interfaces for `-p` to reach it. That makes the
+# port routable, so startup refuses unless DA_API_TOKEN is set, or
+# DA_ALLOW_UNAUTHENTICATED=true declares the port protected some other way.
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    DA_API_HOST=0.0.0.0
 
 # Run unprivileged. The agent only needs to write under /app/data.
 RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin agent

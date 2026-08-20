@@ -30,6 +30,7 @@ from data_agent.api.schemas import (
     ToolResponse,
     ToolStepOut,
 )
+from data_agent.api.security import is_authenticated, require_token
 from data_agent.datasources.sql_guard import UnsafeSQLError
 from data_agent.mcp.tools import TOOLS
 from data_agent.observability import configure_logging, new_request_id, request_id_var
@@ -93,17 +94,23 @@ async def correlate_requests(
 
 
 @app.get("/health")
-def health(rt: RuntimeDep) -> dict[str, Any]:
-    return {
-        "status": "ok",
-        "version": __version__,
-        "model_backend": rt.settings.model_backend,
-        "model_id": rt.settings.model_id,
-        "kb_chunks": len(rt.retriever.store),
-    }
+def health(
+    rt: RuntimeDep,
+    authenticated: Annotated[bool, Depends(is_authenticated)],
+) -> dict[str, Any]:
+    """Liveness. Always reachable, because probes cannot carry a token, but the
+    detail is withheld from anonymous callers once a token is configured."""
+    body: dict[str, Any] = {"status": "ok", "version": __version__}
+    if authenticated:
+        body |= {
+            "model_backend": rt.settings.model_backend,
+            "model_id": rt.settings.model_id,
+            "kb_chunks": len(rt.retriever.store),
+        }
+    return body
 
 
-@app.post("/ask", response_model=AskResponse)
+@app.post("/ask", response_model=AskResponse, dependencies=[Depends(require_token)])
 async def ask(req: AskRequest, rt: RuntimeDep) -> AskResponse:
     if not req.question.strip():
         raise HTTPException(400, "empty question")
@@ -118,7 +125,7 @@ async def ask(req: AskRequest, rt: RuntimeDep) -> AskResponse:
     )
 
 
-@app.post("/tool", response_model=ToolResponse)
+@app.post("/tool", response_model=ToolResponse, dependencies=[Depends(require_token)])
 def tool(req: ToolRequest, rt: RuntimeDep) -> ToolResponse:
     entry = TOOLS.get(req.name)
     if entry is None:

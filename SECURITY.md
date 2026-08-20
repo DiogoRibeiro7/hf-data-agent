@@ -17,16 +17,30 @@ Expect an acknowledgement within 72 hours and an assessment within 7 days.
 This is an agent that puts a language model in front of your data platform.
 Read this section before exposing it beyond localhost.
 
-### The API and the MCP transports are unauthenticated
+### The HTTP API supports bearer authentication; the MCP transport does not
 
-`POST /ask`, `POST /tool` and the remote MCP transport ship with **no
-authentication**. `DA_API_HOST` also defaults to `0.0.0.0`, which binds every
-interface. Anyone who can reach the port can query your knowledge base and your
-warehouse.
+`POST /ask` and `POST /tool` require a bearer token when `DA_API_TOKEN` is set,
+compared in constant time. `GET /health` stays reachable without one so probes
+work, but withholds the backend and knowledge-base detail from anonymous
+callers.
 
-Before deploying anywhere shared, put the service behind an authenticating
-reverse proxy or gateway, and bind it narrowly (`DA_API_HOST=127.0.0.1`) when it
-only needs to serve a local client.
+Authentication is **off** when `DA_API_TOKEN` is empty, so that the offline
+quickstart needs no configuration. The bind address carries the safety instead:
+
+- `DA_API_HOST` defaults to `127.0.0.1`.
+- Startup **refuses** to bind a non-loopback interface without a token, unless
+  `DA_ALLOW_UNAUTHENTICATED=true` declares the port protected by something else.
+
+The container image sets `DA_API_HOST=0.0.0.0` because `-p` cannot reach a
+loopback bind, so running it requires one of those two decisions explicitly.
+
+**The remote MCP transport has no bearer authentication.** FastMCP's built-in
+auth is an OAuth resource-server model — it expects an issuer URL and a resource
+server URL, not a shared secret — so `DA_API_TOKEN` does not protect it, and
+wiring a fake issuer would advertise metadata endpoints that do not exist.
+`DA_MCP_HOST` therefore defaults to loopback and startup refuses a routable bind
+unless `DA_ALLOW_UNAUTHENTICATED=true`. To expose MCP, put an authenticating
+proxy in front of it, or configure FastMCP's OAuth resource server properly.
 
 ### SQL execution is guarded, but the guard is not a sandbox
 

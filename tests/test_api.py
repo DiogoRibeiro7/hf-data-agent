@@ -5,13 +5,10 @@ from __future__ import annotations
 import logging
 
 import pytest
-from fastapi.testclient import TestClient
 
-from data_agent.api.app import app
 from data_agent.knowledge.ingest import ingest
 from data_agent.knowledge.sources.base import Document
 from data_agent.observability import request_id_var
-from data_agent.runtime import get_runtime
 
 
 class ListSource:
@@ -22,14 +19,6 @@ class ListSource:
 
     def fetch(self):
         yield from self._docs
-
-
-@pytest.fixture
-def client(runtime):
-    """A client whose app resolves the injected test runtime, never the global one."""
-    app.dependency_overrides[get_runtime] = lambda: runtime
-    yield TestClient(app)
-    app.dependency_overrides.clear()
 
 
 class TestHealth:

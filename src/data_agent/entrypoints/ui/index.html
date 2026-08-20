@@ -36,6 +36,20 @@
     </form>
   </main>
   <script>
+    const TOKEN_KEY = "da_api_token";
+
+    // Sent only when the page has been given a token; an open server needs none.
+    function ask(question) {
+      const headers = { "Content-Type": "application/json" };
+      const token = sessionStorage.getItem(TOKEN_KEY);
+      if (token) headers["Authorization"] = "Bearer " + token;
+      return fetch("/ask", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ question, entrypoint: "ui" }),
+      });
+    }
+
     const log = document.getElementById("log");
     const input = document.getElementById("q");
     const send = document.getElementById("send");
@@ -79,11 +93,20 @@
       const pending = add("bot", "…");
 
       try {
-        const response = await fetch("/ask", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question, entrypoint: "ui" }),
-        });
+        let response = await ask(question);
+        if (response.status === 401) {
+          // The server has DA_API_TOKEN set. Ask once, keep it for this tab
+          // only (sessionStorage, not localStorage), and retry.
+          const supplied = window.prompt("This agent requires an API token:");
+          if (supplied) {
+            sessionStorage.setItem(TOKEN_KEY, supplied);
+            response = await ask(question);
+          }
+        }
+        if (response.status === 401) {
+          sessionStorage.removeItem(TOKEN_KEY);
+          throw new Error("401 — the token was missing or not accepted.");
+        }
         if (!response.ok) {
           const detail = await response.text();
           throw new Error(`${response.status} ${response.statusText} — ${detail}`);
