@@ -61,8 +61,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - GitHub Actions: lint/format/type checks, a test matrix over Python
   3.10–3.13 plus Windows and macOS, an end-to-end smoke job that exercises the
   documented offline path, a container job asserting the image runs non-root,
-  CodeQL analysis, and a release workflow that refuses a tag disagreeing with
-  the package version.
+  a release workflow that refuses a tag disagreeing with the package version,
+  and a CodeQL workflow that stays dormant while the repository is private
+  (code scanning there needs GitHub Advanced Security) and enables itself
+  if the repository is made public.
 - FastAPI dependency injection for the runtime, so the app is testable without
   monkeypatching module globals.
 - `make help`, `make check`, `make format`, `make types`, `make hooks`.

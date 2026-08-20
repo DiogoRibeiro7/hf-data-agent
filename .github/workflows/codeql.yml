@@ -16,6 +16,12 @@ jobs:
   analyze:
     name: Analyse Python
     runs-on: ubuntu-latest
+    # Code scanning on a PRIVATE repository requires GitHub Advanced Security.
+    # Without it the analysis runs fine but the upload returns 403 and the job
+    # fails, which is worse than not running it at all. This guard keeps the
+    # workflow dormant while the repo is private and turns it on by itself if
+    # the repo is ever made public. Delete the condition if GHAS is enabled.
+    if: github.event.repository.visibility == 'public'
     steps:
       - uses: actions/checkout@v7
       - uses: github/codeql-action/init@v4
