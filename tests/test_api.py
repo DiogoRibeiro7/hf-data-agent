@@ -122,9 +122,13 @@ class TestUI:
         assert response.status_code == 200
         assert "HF DATA AGENT" in response.text
 
-    def test_the_page_never_assigns_innerhtml(self, client):
+    def test_the_page_never_assigns_markup(self, client):
         """Answers and knowledge-base source names are both influenced by
-        ingested documents, so the page must render them as text, not markup."""
+        ingested documents, so the page must render them as text, not markup.
+
+        Checks for assignment rather than the bare word, so the comment
+        explaining the rule does not trip its own test."""
         page = client.get("/").text
-        assert "innerHTML" not in page
+        for sink in ("innerHTML =", "innerHTML+=", "outerHTML =", "insertAdjacentHTML"):
+            assert sink not in page, f"page writes markup via {sink}"
         assert "textContent" in page

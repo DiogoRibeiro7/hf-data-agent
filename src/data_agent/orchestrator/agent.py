@@ -16,12 +16,14 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
 from data_agent.knowledge.retriever import RetrievedContext
 from data_agent.mcp.tools import TOOLS, ToolSpec
 from data_agent.model.base import CONTEXT_MARKER, Message
+from data_agent.model.streaming import stream_or_whole
 from data_agent.orchestrator.tool_calls import ToolCall, parse_tool_call
 from data_agent.runtime import Runtime
 
@@ -65,6 +67,34 @@ class AgentReply:
     steps: list[ToolInvocation] = field(default_factory=list)
     #: True when the loop ran out of budget and was forced to conclude.
     step_limit_reached: bool = False
+
+
+@dataclass
+class DeltaEvent:
+    """A piece of the answer as it arrives."""
+
+    text: str
+
+
+@dataclass
+class StepEvent:
+    """A tool ran; the answer has not started yet."""
+
+    step: ToolInvocation
+
+
+@dataclass
+class DoneEvent:
+    """The turn is finished; carries the assembled reply."""
+
+    reply: AgentReply
+
+
+AgentEvent = DeltaEvent | StepEvent | DoneEvent
+
+#: A turn that opens with one of these is a tool call, not prose, so its text is
+#: withheld from the stream instead of leaking JSON into the answer.
+_TOOL_CALL_OPENERS = ("{", "```")
 
 
 def render_catalogue(specs: dict[str, ToolSpec]) -> str:
@@ -178,6 +208,69 @@ class Orchestrator:
         final = await self.rt.model.generate([*messages, Message("user", FINALISE)])
         return self._finish(final, contexts, steps, True, started)
 
+    # ---------------------------------------------------------------- stream --
+    async def _stream_turn(self, messages: list[Message]) -> AsyncIterator[DeltaEvent | _Turn]:
+        """Run one model turn, yielding forwardable text and finally the turn."""
+        turn = _Turn()
+        async for chunk in stream_or_whole(self.rt.model, messages):
+            forwardable = turn.add(chunk)
+            if forwardable:
+                yield DeltaEvent(forwardable)
+        yield turn
+
+    async def answer_stream(self, question: str) -> AsyncIterator[AgentEvent]:
+        """The same loop as `answer`, emitted as it happens.
+
+        Yields DeltaEvent as answer text arrives, StepEvent when a tool runs,
+        and exactly one DoneEvent last carrying the assembled reply.
+        """
+        started = time.perf_counter()
+        contexts = self.rt.retriever.retrieve(question)
+        messages = self._build_messages(question, contexts)
+        steps: list[ToolInvocation] = []
+        settings = self.rt.settings
+        rounds = max(settings.max_tool_steps, 0) if settings.enable_tools and self.tools else 0
+
+        for _ in range(rounds):
+            turn = None
+            async for event in self._stream_turn(messages):
+                if isinstance(event, DeltaEvent):
+                    yield event
+                else:
+                    turn = event
+            assert turn is not None
+
+            call = parse_tool_call(turn.text)
+            if call is None:
+                # Prose after all. If it was withheld as a suspected tool call,
+                # release it now so the answer is not silently truncated.
+                withheld = turn.withheld()
+                if withheld:
+                    yield DeltaEvent(withheld)
+                yield DoneEvent(self._finish(turn.text, contexts, steps, False, started))
+                return
+
+            step = self._execute(call)
+            steps.append(step)
+            yield StepEvent(step)
+            messages.append(Message("assistant", turn.text))
+            messages.append(self._observation(step))
+
+        # Either tools are off, or the budget is spent: one final, tool-free turn.
+        if rounds:
+            messages = [*messages, Message("user", FINALISE)]
+        final = None
+        async for event in self._stream_turn(messages):
+            if isinstance(event, DeltaEvent):
+                yield event
+            else:
+                final = event
+        assert final is not None
+        withheld = final.withheld()
+        if withheld:
+            yield DeltaEvent(withheld)
+        yield DoneEvent(self._finish(final.text, contexts, steps, bool(rounds), started))
+
     def _finish(
         self,
         answer: str,
@@ -202,3 +295,39 @@ class Orchestrator:
             steps=steps,
             step_limit_reached=limit_reached,
         )
+
+
+class _Turn:
+    """Accumulates one streamed model turn and decides what may be forwarded.
+
+    A turn is either prose (the answer) or a JSON tool call. Which one is not
+    known until the first non-whitespace character arrives, so text is held back
+    until then: a couple of characters of latency, in exchange for never
+    emitting protocol noise into the answer.
+    """
+
+    def __init__(self) -> None:
+        self.parts: list[str] = []
+        self.is_prose: bool | None = None
+
+    @property
+    def text(self) -> str:
+        return "".join(self.parts)
+
+    def add(self, chunk: str) -> str | None:
+        """Record `chunk`; return the text that may be forwarded, if any."""
+        self.parts.append(chunk)
+        if self.is_prose is False:
+            return None
+        if self.is_prose:
+            return chunk
+
+        opening = self.text.lstrip()
+        if not opening:
+            return None  # still only whitespace: undecided
+        self.is_prose = not opening.startswith(_TOOL_CALL_OPENERS)
+        return self.text if self.is_prose else None
+
+    def withheld(self) -> str | None:
+        """Text held back that turned out not to be a tool call after all."""
+        return self.text if self.is_prose is False else None

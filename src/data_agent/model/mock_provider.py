@@ -3,9 +3,13 @@ GPU, no downloads, and no network. Swap to a real backend via env vars."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import re
+from collections.abc import AsyncIterator, Sequence
 
 from data_agent.model.base import CONTEXT_MARKER, Message
+
+#: Split on words but keep their trailing space, so chunks rejoin exactly.
+_WORDS = re.compile(r"\S+\s*")
 
 
 class MockProvider:
@@ -22,3 +26,12 @@ class MockProvider:
             f"Set DA_MODEL_BACKEND=transformers|openai_compatible|hf_inference for real answers.\n"
             f"Echo: {q[:280]}"
         )
+
+    async def generate_stream(self, messages: Sequence[Message]) -> AsyncIterator[str]:
+        """Emit the same answer a word at a time.
+
+        The default backend streams too, so `/ask/stream` can be exercised
+        offline and the concatenated chunks are byte-identical to `generate`.
+        """
+        for word in _WORDS.findall(await self.generate(messages)):
+            yield word

@@ -11,6 +11,7 @@ Put it behind an authenticating proxy before exposing it. See SECURITY.md.
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -19,7 +20,7 @@ from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 
 from data_agent import __version__
 from data_agent.api.schemas import (
@@ -34,7 +35,11 @@ from data_agent.api.security import is_authenticated, require_token
 from data_agent.datasources.sql_guard import UnsafeSQLError
 from data_agent.mcp.tools import TOOLS
 from data_agent.observability import configure_logging, new_request_id, request_id_var
-from data_agent.orchestrator.agent import Orchestrator
+from data_agent.orchestrator.agent import (
+    DeltaEvent,
+    Orchestrator,
+    StepEvent,
+)
 from data_agent.runtime import Runtime, get_runtime
 
 logger = logging.getLogger(__name__)
@@ -122,6 +127,68 @@ async def ask(req: AskRequest, rt: RuntimeDep) -> AskResponse:
             ToolStepOut(tool=s.tool, args=s.args, result=s.result, ok=s.ok) for s in reply.steps
         ],
         step_limit_reached=reply.step_limit_reached,
+    )
+
+
+def _sse(event: str, payload: dict[str, Any]) -> str:
+    """One Server-Sent Event. The blank line terminates the frame."""
+    return f"event: {event}\ndata: {json.dumps(payload)}\n\n"
+
+
+@app.post("/ask/stream", dependencies=[Depends(require_token)])
+async def ask_stream(req: AskRequest, rt: RuntimeDep) -> StreamingResponse:
+    """The same answer as /ask, delivered as it is produced.
+
+    Emits `delta` frames as answer text arrives, `step` frames when a tool runs,
+    and a final `done` frame carrying the same body /ask would have returned.
+    Backends without streaming support still work: the answer arrives as one
+    `delta`.
+    """
+    if not req.question.strip():
+        raise HTTPException(400, "empty question")
+
+    async def frames() -> AsyncIterator[str]:
+        try:
+            async for event in Orchestrator(rt).answer_stream(req.question):
+                if isinstance(event, DeltaEvent):
+                    yield _sse("delta", {"text": event.text})
+                elif isinstance(event, StepEvent):
+                    yield _sse(
+                        "step",
+                        {
+                            "tool": event.step.tool,
+                            "args": event.step.args,
+                            "ok": event.step.ok,
+                            "result": event.step.result,
+                        },
+                    )
+                else:
+                    reply = event.reply
+                    yield _sse(
+                        "done",
+                        {
+                            "answer": reply.answer,
+                            "contexts": [
+                                {"source": c.source, "score": c.score, "text": c.text}
+                                for c in reply.contexts
+                            ],
+                            "steps": [
+                                {"tool": s.tool, "args": s.args, "ok": s.ok, "result": s.result}
+                                for s in reply.steps
+                            ],
+                            "step_limit_reached": reply.step_limit_reached,
+                        },
+                    )
+        except Exception as exc:
+            # The response has already begun, so the status code cannot change:
+            # report the failure in-band instead of dropping the connection.
+            logger.exception("streaming answer failed")
+            yield _sse("error", {"detail": f"{type(exc).__name__}: {exc}"})
+
+    return StreamingResponse(
+        frames(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
     )
 
 

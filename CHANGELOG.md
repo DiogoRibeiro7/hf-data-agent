@@ -79,6 +79,17 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Streaming responses** (roadmap item 02). `generate_stream` is now part of the
+  provider surface, implemented for the mock, OpenAI-compatible, HF Inference and
+  transformers backends; a provider without it still works, yielding the answer
+  in one piece. `POST /ask/stream` emits Server-Sent Events — `delta` as text
+  arrives, `step` when a tool runs, `done` with the full `/ask` body — and the UI
+  renders tokens as they come.
+- A tool-call turn is never streamed as text. Each turn is withheld only until
+  its first non-whitespace character reveals prose or JSON, so the tool protocol
+  cannot leak into the answer. Text withheld as a suspected call that turns out
+  not to be one is released, so an answer starting with `{` is not lost.
+
 - **Eval harness** (roadmap item 08). `evals/golden.json` holds 18 curated
   questions over `data/seed`, and `evals/run_eval.py` scores retrieval hit-rate
   and MRR, gating CI at 0.85 / 0.60. Retrieval is deterministic, so the floors

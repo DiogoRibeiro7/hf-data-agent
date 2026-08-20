@@ -43,11 +43,39 @@
       const headers = { "Content-Type": "application/json" };
       const token = sessionStorage.getItem(TOKEN_KEY);
       if (token) headers["Authorization"] = "Bearer " + token;
-      return fetch("/ask", {
+      return fetch("/ask/stream", {
         method: "POST",
         headers,
         body: JSON.stringify({ question, entrypoint: "ui" }),
       });
+    }
+
+    // Server-Sent Events, decoded incrementally. Frames are separated by a
+    // blank line; a partial frame is kept until the rest of it arrives.
+    async function* frames(response) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let split;
+        while ((split = buffer.indexOf("
+
+")) !== -1) {
+          const block = buffer.slice(0, split);
+          buffer = buffer.slice(split + 2);
+          let name = "message";
+          let data = "";
+          for (const line of block.split("
+")) {
+            if (line.startsWith("event: ")) name = line.slice(7).trim();
+            else if (line.startsWith("data: ")) data += line.slice(6);
+          }
+          if (data) yield [name, JSON.parse(data)];
+        }
+      }
     }
 
     const log = document.getElementById("log");
@@ -111,13 +139,31 @@
           const detail = await response.text();
           throw new Error(`${response.status} ${response.statusText} — ${detail}`);
         }
-        const data = await response.json();
-        const sources = [...new Set((data.contexts || []).map((c) => c.source))];
-        pending.remove();
-        const bubble = add("bot", data.answer, sources, data.steps);
-        if (data.step_limit_reached) {
-          note(bubble, "note: stopped at the tool-call limit");
+
+        pending.textContent = "";
+        const tools = [];
+        let toolLine = null;
+
+        for await (const [name, payload] of frames(response)) {
+          if (name === "delta") {
+            // textContent, never innerHTML: this text is model output.
+            pending.textContent += payload.text;
+            pending.scrollIntoView({ behavior: "smooth", block: "end" });
+          } else if (name === "step") {
+            tools.push(payload.ok ? payload.tool : payload.tool + " (failed)");
+            if (!toolLine) toolLine = note(pending, "");
+            toolLine.textContent = "tools: " + tools.join(" → ");
+          } else if (name === "error") {
+            throw new Error(payload.detail);
+          } else if (name === "done") {
+            const sources = [...new Set((payload.contexts || []).map((c) => c.source))];
+            if (sources.length) note(pending, "sources: " + sources.join(", "));
+            if (payload.step_limit_reached) {
+              note(pending, "note: stopped at the tool-call limit");
+            }
+          }
         }
+        if (!pending.textContent) pending.textContent = "(no answer)";
       } catch (error) {
         pending.remove();
         add("err", "Request failed: " + error.message);

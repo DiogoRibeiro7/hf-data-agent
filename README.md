@@ -121,6 +121,25 @@ Tools are declared once in `mcp/tools.py` as `ToolSpec`s, so the same
 definitions drive the prompt catalogue, the `/tool` route and the MCP server.
 Set `DA_ENABLE_TOOLS=false` to restore the original single-shot behaviour.
 
+### Streaming
+
+`POST /ask/stream` delivers the same answer as it is produced:
+
+```
+event: step     {"tool": "warehouse_query", "ok": true, ...}
+event: delta    {"text": "AMER booked "}
+event: delta    {"text": "$1,866,500."}
+event: done     {"answer": ..., "contexts": [...], "steps": [...]}
+```
+
+A turn that is a tool call is **not** streamed as text. Each turn is held
+back only until its first non-whitespace character shows whether it is prose
+or JSON — a couple of characters of latency, in exchange for never leaking
+the tool protocol into the answer. Backends without streaming support still
+work: the answer arrives as a single `delta`. Because the response has
+already started when a backend fails, errors arrive as an `error` frame
+rather than as a status code.
+
 ## Plug in a real open model
 
 | backend             | how                                                            |
@@ -153,6 +172,7 @@ same question asked over MCP take an identical path.
 | `GET`  | `/`       | Agent UI                                             |
 | `GET`  | `/health` | status, version, active backend, knowledge-base size |
 | `POST` | `/ask`    | RAG answer, with the retrieved contexts              |
+| `POST` | `/ask/stream` | the same answer as Server-Sent Events            |
 | `POST` | `/tool`   | invoke one tool directly                             |
 
 Every response carries an `X-Request-ID`; send your own header to correlate
