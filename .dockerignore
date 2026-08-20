@@ -27,8 +27,6 @@ data/vector_store.json
 # knowledge base is ingested from it.
 tests/
 docs/
-prompts/
-AGENTS.md
 CHANGELOG.md
 CONTRIBUTING.md
 CODE_OF_CONDUCT.md

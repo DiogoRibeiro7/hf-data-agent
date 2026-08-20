@@ -6,7 +6,7 @@ Default flow (retrieval-augmented generation):
   3. call the open HF model (MODEL box, via the provider abstraction)
 
 Live data tools (warehouse / airflow) are exposed both here and over MCP. A full
-tool-calling / ReAct loop is the natural extension point — see prompts/.
+tool-calling / ReAct loop is the natural extension point.
 """
 
 from __future__ import annotations
