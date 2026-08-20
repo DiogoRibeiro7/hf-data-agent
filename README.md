@@ -11,21 +11,40 @@ grounds an **open-source LLM from Hugging Face** in your company knowledge base
 and lets it pull fresh numbers from your data platform.
 
 ```
-  ENTRYPOINTS                 AGENT-API                 MODEL
-  ┌───────────────┐                                ┌──────────────────┐
-  │ Agent UI      │─┐                            ┌▶│ open HF model     │
-  │ Local MCP     │ │      ┌──────────────┐  MCP │ │ (Qwen/Llama/Phi…) │
-  │ Remote MCP    │ ├─────▶│ Orchestrator │◀─────┘ └──────────────────┘
-  │ Slack         │─┘      │  (RAG core)  │
-  └───────────────┘        └──────┬───────┘
-                       offline ▲  │  ▼ online sync
-              ┌─────────────────┘  └─────────────────┐
-   ┌──────────────────────┐            ┌──────────────────────────┐
-   │ Knowledge base (RAG) │            │ Data platform            │
-   │ fs / Notion / GDocs  │            │ warehouse / Airflow /    │
-   │ / Slack  (pre-built) │            │ Spark / metadata (live)  │
-   └──────────────────────┘            └──────────────────────────┘
+  ENTRYPOINTS          AGENT-API                          MODEL
+ ┌──────────────┐     ┌────────────────────┐             ┌──────────────────┐
+ │ Agent UI     │     │ Orchestrator       │  prompt +   │ open HF model    │
+ │ HTTP API     │     │                    │──catalogue─▶│                  │
+ │ Local MCP    │────▶│ 1. retrieve        │             │ Qwen · Llama ·   │
+ │ Remote MCP   │     │ 2. ground prompt   │◀─answer or ─│ Phi · Mistral    │
+ │ Slack        │     │ 3. tool loop       │  tool call  │                  │
+ └──────────────┘     └────┬──────────┬────┘             └──────────────────┘
+   one funnel              │          ▲ result returns as
+                 run tool  ▼          │ an OBSERVATION
+                      ┌────┬──────────┬────┐
+                      │ TOOLS              │
+                      │ knowledge_search   │
+                      │ warehouse_query    │
+                      │ list_dags          │
+                      └────┬──────────┬────┘
+                           │          │
+                  ┌────────┘          └─────────────────────┐
+                  ▼ offline                                 ▼ live
+   ┌──────────────────────────────┐          ┌──────────────────────────────┐
+   │ Knowledge base (RAG)         │          │ Data platform                │
+   │ fs · Notion · GDocs · Slack  │          │ warehouse — guarded SQL      │
+   │ built by scripts/ingest.py   │          │ Airflow · Spark · catalog    │
+   └──────────────────────────────┘          └──────────────────────────────┘
 ```
+
+Two things the picture is trying to say. Every entrypoint reaches the same
+`Orchestrator` — one funnel, not five — so a question asked in Slack takes the
+same path as one asked over MCP. And knowledge is built **offline** and only
+read while serving, whereas the data platform is queried **live**; that split is
+the reason ingestion is a separate script rather than part of a request.
+
+The loop between orchestrator, model and tools is described in
+[How it answers](#how-it-answers).
 
 ## Quickstart
 
@@ -175,11 +194,13 @@ src/data_agent/
   config.py            env-driven settings
   observability.py     logging setup + request correlation
   runtime.py           single wiring point (model + retriever + datasources)
-  orchestrator/        RAG core (the AGENT-API brain)
+  orchestrator/        the AGENT-API brain: grounding + the tool-calling loop
+    agent.py           retrieve, ground, loop, execute tools, answer
+    tool_calls.py      the JSON tool-call protocol and its parser
   model/               provider abstraction: mock | transformers | vLLM/TGI | HF Inference
   knowledge/           RAG: embedder, store, sources, offline ingest, online retrieve
   datasources/         live adapters: warehouse (guarded), spark/airflow/metadata
-  mcp/                 MCP server + shared tool definitions
+  mcp/                 MCP server + the ToolSpec registry (tools defined once)
   entrypoints/         ui / api / mcp_local / mcp_remote / slack
 ```
 
