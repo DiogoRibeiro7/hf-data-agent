@@ -1,7 +1,12 @@
-"""Offline ingestion CLI. Rebuilds the vector store from the filesystem source
-(and any connectors you enable). Run on a schedule (cron / Airflow).
+"""Offline ingestion CLI. Rebuilds the vector store from the configured sources.
+Run on a schedule (cron / Airflow).
 
     python scripts/ingest.py data/seed
+    python scripts/ingest.py data/seed --notion --slack
+
+SaaS connectors are opt-in per run and read their credentials from the
+environment (see .env.example). None of them has been verified against its live
+API — check the reported document count on the first real run.
 """
 
 from __future__ import annotations
@@ -11,8 +16,9 @@ import logging
 import sys
 from pathlib import Path
 
-from data_agent.config import get_settings
+from data_agent.config import Settings, get_settings
 from data_agent.knowledge.ingest import ingest
+from data_agent.knowledge.sources.base import KnowledgeSource
 from data_agent.knowledge.sources.filesystem import FilesystemSource
 from data_agent.observability import configure_logging
 
@@ -32,7 +38,51 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="add to the existing store instead of rebuilding it (may duplicate chunks)",
     )
+    parser.add_argument("--no-filesystem", action="store_true", help="skip the local directory")
+    parser.add_argument("--notion", action="store_true", help="also ingest Notion databases")
+    parser.add_argument("--slack", action="store_true", help="also ingest Slack channels")
+    parser.add_argument("--gdocs", action="store_true", help="also ingest a Google Drive folder")
     return parser.parse_args(argv)
+
+
+def build_sources(args: argparse.Namespace, settings: Settings) -> list[KnowledgeSource]:
+    """Assemble the requested sources, failing loudly on missing credentials.
+
+    A connector that quietly does nothing because a token is unset is worse than
+    one that refuses: the ingest reports success and the knowledge base is
+    missing a whole source.
+    """
+    sources: list[KnowledgeSource] = []
+
+    if not args.no_filesystem:
+        sources.append(FilesystemSource(str(args.root)))
+
+    if args.notion:
+        from data_agent.knowledge.sources.notion import NotionSource
+
+        if not settings.notion_databases:
+            raise SystemExit("--notion needs DA_NOTION_DATABASE_IDS")
+        sources.append(NotionSource(settings.notion_token, settings.notion_databases))
+
+    if args.slack:
+        from data_agent.knowledge.sources.slack import SlackSource
+
+        if not settings.slack_channels:
+            raise SystemExit("--slack needs DA_SLACK_INGEST_CHANNELS")
+        sources.append(SlackSource(settings.slack_ingest_token, settings.slack_channels))
+
+    if args.gdocs:
+        from data_agent.knowledge.sources.gdocs import GoogleDocsSource
+
+        sources.append(
+            GoogleDocsSource(
+                settings.gdocs_credentials,
+                settings.gdocs_folder_id,
+                recursive=settings.gdocs_recursive,
+            )
+        )
+
+    return sources
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -41,20 +91,26 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging(settings.log_level, settings.log_format)
 
     root = Path(args.root)
-    if not root.is_dir():
+    if not args.no_filesystem and not root.is_dir():
         logger.error("not a directory: %s", root)
         return 1
 
-    sources = [FilesystemSource(str(root))]
-    # Enable SaaS connectors here once credentials are wired, e.g.:
-    #   from data_agent.knowledge.sources.connectors import NotionSource
-    #   sources.append(NotionSource(token=..., database_ids=[...]))
+    try:
+        sources = build_sources(args, settings)
+    except (SystemExit, ValueError) as exc:
+        logger.error("%s", exc)
+        return 2
+
+    if not sources:
+        logger.error("no sources selected")
+        return 2
+
     store = ingest(sources, settings, rebuild=not args.append)
     logger.info(
         "ingestion complete",
         extra={
             "chunks": len(store),
-            "root": str(root),
+            "sources": [s.name for s in sources],
             "store": settings.vector_store_path,
             "mode": "append" if args.append else "rebuild",
         },

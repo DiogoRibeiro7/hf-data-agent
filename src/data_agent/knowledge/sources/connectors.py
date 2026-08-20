@@ -1,49 +1,21 @@
-"""Connector stubs for the SaaS knowledge sources in the diagram.
+"""SaaS knowledge connectors, re-exported from their own modules.
 
-Each implements the KnowledgeSource protocol. They raise until wired with real
-credentials/SDKs so the contract is explicit and the diagram stays honest.
-Implement `fetch()` against the respective API and you're done — ingestion,
-chunking, embedding, retrieval are all source-agnostic.
+Each implements the `KnowledgeSource` protocol: a `fetch()` that yields
+`Document`s. Ingestion, chunking, embedding and retrieval are source-agnostic,
+so a working `fetch()` is all a new source needs.
+
+**None of these has been run against its live API.** Their request shapes follow
+the documented APIs and the tests drive real HTTP mocks (Notion, Slack) or a
+stand-in service object (Google Docs), so the parsing, pagination and
+rate-limit handling are exercised — but no real workspace has been read. Treat
+the first real ingest as the test: check the document count, and spot-check the
+text of one document, before trusting answers built on it.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from data_agent.knowledge.sources.gdocs import GoogleDocsSource
+from data_agent.knowledge.sources.notion import NotionSource
+from data_agent.knowledge.sources.slack import SlackSource
 
-from data_agent.knowledge.sources.base import Document
-
-
-class NotionSource:
-    name = "notion"
-
-    def __init__(self, token: str, database_ids: list[str]) -> None:
-        self.token = token
-        self.database_ids = database_ids
-
-    def fetch(self) -> Iterator[Document]:
-        # TODO: use notion-client to page over databases/blocks -> Document.
-        raise NotImplementedError("Wire up notion-client and yield Documents.")
-
-
-class GoogleDocsSource:
-    name = "gdocs"
-
-    def __init__(self, credentials_path: str, folder_id: str) -> None:
-        self.credentials_path = credentials_path
-        self.folder_id = folder_id
-
-    def fetch(self) -> Iterator[Document]:
-        # TODO: Google Drive/Docs API -> export docs as text -> Document.
-        raise NotImplementedError("Wire up Google Docs API and yield Documents.")
-
-
-class SlackSource:
-    name = "slack"
-
-    def __init__(self, bot_token: str, channel_ids: list[str]) -> None:
-        self.bot_token = bot_token
-        self.channel_ids = channel_ids
-
-    def fetch(self) -> Iterator[Document]:
-        # TODO: slack_sdk conversations.history per channel -> Document per thread.
-        raise NotImplementedError("Wire up slack_sdk and yield Documents.")
+__all__ = ["GoogleDocsSource", "NotionSource", "SlackSource"]

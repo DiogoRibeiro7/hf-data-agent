@@ -79,6 +79,24 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Notion, Slack and Google Docs knowledge connectors** (roadmap items 03 and
+  04), replacing the stubs that raised `NotImplementedError`. Each is opt-in per
+  ingest run (`--notion`, `--slack`, `--gdocs`) and refuses to run without its
+  credentials rather than contributing nothing silently.
+  - Notion and Slack use `httpx` from core rather than their SDKs, so they add
+    no dependency and their request handling is exercisable against mock
+    transports. Google Docs needs `google-api-python-client` (new `gdocs`
+    extra, imported lazily) because reaching Drive means a signed
+    service-account assertion.
+  - Slack is indexed per thread rather than per message, so a question is not
+    separated from its answer.
+  - Pagination is followed to the end and 429s are retried using the server's
+    own `Retry-After`, capped so a bad header cannot stall an ingest.
+  - **None of the three has been run against its live API.** The tests cover
+    parsing, pagination, thread deduplication and rate limiting; they cannot
+    cover whether the real APIs answer in the shapes assumed. Stated in the
+    module docstrings, the README and the ingest CLI help.
+
 - **Streaming responses** (roadmap item 02). `generate_stream` is now part of the
   provider surface, implemented for the mock, OpenAI-compatible, HF Inference and
   transformers backends; a provider without it still works, yielding the answer

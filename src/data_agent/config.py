@@ -46,6 +46,18 @@ class Settings(BaseSettings):
     #: Observations longer than this are truncated before going back to the model.
     tool_result_max_chars: int = 4000
 
+    # ---- SaaS knowledge connectors (offline ingestion only) ----
+    #: Notion integration token, and the databases to page over.
+    notion_token: str = ""
+    notion_database_ids: str = ""
+    #: Slack bot token used for *ingestion*; needs channels:history.
+    slack_ingest_token: str = ""
+    slack_ingest_channels: str = ""
+    #: Service-account JSON and the Drive folder to read.
+    gdocs_credentials: str = ""
+    gdocs_folder_id: str = ""
+    gdocs_recursive: bool = False
+
     # ---- Data platform (online sync calls) ----
     # Use a database user holding SELECT and nothing else: the SQL guard is a
     # safety net, the grant is the boundary. See SECURITY.md.
@@ -84,6 +96,20 @@ class Settings(BaseSettings):
     # ---- Slack entrypoint ----
     slack_bot_token: str = ""
     slack_signing_secret: str = ""
+
+    @staticmethod
+    def _csv(raw: str) -> list[str]:
+        return [item.strip() for item in raw.split(",") if item.strip()]
+
+    @property
+    def notion_databases(self) -> list[str]:
+        """Parsed `notion_database_ids`."""
+        return self._csv(self.notion_database_ids)
+
+    @property
+    def slack_channels(self) -> list[str]:
+        """Parsed `slack_ingest_channels`."""
+        return self._csv(self.slack_ingest_channels)
 
     @property
     def allowed_tables(self) -> frozenset[str] | None:

@@ -140,6 +140,39 @@ work: the answer arrives as a single `delta`. Because the response has
 already started when a backend fails, errors arrive as an `error` frame
 rather than as a status code.
 
+## Knowledge sources
+
+Ingestion reads a local directory by default. The SaaS connectors are opt-in per
+run and read credentials from the environment:
+
+```bash
+python scripts/ingest.py data/seed                    # local files only
+python scripts/ingest.py data/seed --notion --slack   # plus SaaS sources
+python scripts/ingest.py --no-filesystem --gdocs      # SaaS only
+```
+
+| source     | needs                                    | extra          |
+|------------|------------------------------------------|----------------|
+| filesystem | a directory of `.md` / `.txt`            | —              |
+| notion     | `DA_NOTION_TOKEN`, `DA_NOTION_DATABASE_IDS` | — (uses httpx) |
+| slack      | `DA_SLACK_INGEST_TOKEN`, `DA_SLACK_INGEST_CHANNELS` | — (uses httpx) |
+| gdocs      | `DA_GDOCS_CREDENTIALS`, `DA_GDOCS_FOLDER_ID` | `.[gdocs]`  |
+
+Slack is indexed **per thread**, not per message: a reply chain usually holds
+the question and its answer, and splitting them would let retrieval surface a
+fragment that reads as authoritative while missing its own context.
+
+Selecting a connector without its credentials fails the run rather than
+contributing nothing — a source that silently ingests zero documents reports
+success and leaves a hole in the knowledge base.
+
+> **Not verified against the live APIs.** Request shapes follow the documented
+> APIs and the tests drive real HTTP mocks (Notion, Slack) and a stand-in
+> service object (Google Docs), so parsing, pagination and rate-limit handling
+> are exercised — but no real workspace has been read. Treat the first real
+> ingest as the test: check the document count, and spot-check one document's
+> text, before trusting answers built on it.
+
 ## Plug in a real open model
 
 | backend             | how                                                            |

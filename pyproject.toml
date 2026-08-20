@@ -41,6 +41,8 @@ embeddings = ["sentence-transformers>=3.0"]
 # below 2 until that migration is done; see the mcp-extra CI job.
 mcp = ["mcp>=1.9,<2"]
 slack = ["slack-bolt>=1.18"]
+# Notion and Slack ingestion need nothing extra: they use httpx from core.
+gdocs = ["google-api-python-client>=2.100", "google-auth>=2.30"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -54,7 +56,7 @@ dev = [
     "pre-commit>=3.7",
     "types-requests",
 ]
-all = ["hf-data-agent[transformers,embeddings,mcp,slack,dev]"]
+all = ["hf-data-agent[transformers,embeddings,mcp,slack,gdocs,dev]"]
 
 [project.scripts]
 data-agent-api = "data_agent.entrypoints.run_api:main"
@@ -172,6 +174,13 @@ pretty = true
 module = ["data_agent.mcp.server", "data_agent.entrypoints.slack_app"]
 disallow_untyped_decorators = false
 
+# Same reasoning for the Google SDK: it is an optional extra, absent from the
+# type-check environment, so its constructors arrive untyped. Only the bridge
+# module is relaxed, and only for this check.
+[[tool.mypy.overrides]]
+module = ["data_agent.knowledge.sources.gdocs"]
+disallow_untyped_calls = false
+
 [[tool.mypy.overrides]]
 module = [
     "transformers.*",
@@ -179,5 +188,7 @@ module = [
     "torch.*",
     "mcp.*",
     "slack_bolt.*",
+    "google.*",
+    "googleapiclient.*",
 ]
 ignore_missing_imports = true

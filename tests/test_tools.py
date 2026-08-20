@@ -8,7 +8,6 @@ import pytest
 from data_agent.datasources.sql_guard import UnsafeSQLError
 from data_agent.knowledge.ingest import ingest
 from data_agent.knowledge.sources.base import Document
-from data_agent.knowledge.sources.connectors import GoogleDocsSource, NotionSource, SlackSource
 from data_agent.mcp.tools import TOOLS, knowledge_search, list_dags, warehouse_query
 
 
@@ -89,21 +88,3 @@ class TestListDags:
         runtime.datasources["airflow"] = fake
         assert "daily_revenue" in list_dags(runtime, "list")
         assert fake.seen == ["list"]
-
-
-class TestConnectorStubs:
-    """Unwired connectors must fail loudly, not return empty results that look
-    like a successfully ingested but empty source."""
-
-    @pytest.mark.parametrize(
-        "source",
-        [
-            NotionSource(token="t", database_ids=["d"]),
-            GoogleDocsSource(credentials_path="c", folder_id="f"),
-            SlackSource(bot_token="t", channel_ids=["c"]),
-        ],
-        ids=["notion", "gdocs", "slack"],
-    )
-    def test_fetch_raises_not_implemented(self, source):
-        with pytest.raises(NotImplementedError):
-            list(source.fetch())
