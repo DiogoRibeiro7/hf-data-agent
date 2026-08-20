@@ -73,7 +73,7 @@ packages = ["src/data_agent"]
 # ---------------------------------------------------------------- tests ----
 [tool.pytest.ini_options]
 minversion = "8.0"
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = [
@@ -145,6 +145,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S105", "S106", "S108", "SLF001"]
 "scripts/**" = ["T201"]  # these are CLIs; printing is the interface
+"evals/**" = ["T201"]    # same: the report is the output
 
 [tool.ruff.lint.isort]
 known-first-party = ["data_agent"]

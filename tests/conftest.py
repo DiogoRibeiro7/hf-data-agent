@@ -47,3 +47,16 @@ def runtime(settings: Settings):
     rt = Runtime(settings)
     yield rt
     rt.close()
+
+
+@pytest.fixture(scope="session")
+def repo_root() -> Path:
+    return Path(__file__).resolve().parent.parent
+
+
+@pytest.fixture(scope="session")
+def golden(repo_root: Path) -> dict:
+    """The committed golden set, so eval tests and the harness cannot drift apart."""
+    import json
+
+    return json.loads((repo_root / "evals" / "golden.json").read_text(encoding="utf-8"))

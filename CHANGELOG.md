@@ -51,6 +51,18 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Eval harness** (roadmap item 08). `evals/golden.json` holds 18 curated
+  questions over `data/seed`, and `evals/run_eval.py` scores retrieval hit-rate
+  and MRR, gating CI at 0.85 / 0.60. Retrieval is deterministic, so the floors
+  catch a real regression instead of flapping — and a retrieval regression is
+  otherwise invisible, since the agent keeps answering confidently from the
+  wrong document. Answer groundedness is scored only with `--answers` against a
+  real backend; the script refuses to score the `mock` provider rather than
+  report a meaningless number.
+- The seed corpus grew from one document to six. A single document made
+  retrieval hit-rate trivially 1.0; the new documents share vocabulary
+  deliberately, so retrieval has to discriminate.
+
 - **Bounded tool-calling loop** (roadmap item 01). The orchestrator no longer
   answers in one shot: the model may request `knowledge_search`,
   `warehouse_query` or `list_dags` as a JSON object, the tool runs, and the

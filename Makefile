@@ -36,16 +36,19 @@ test:  ## Run the test suite with coverage
 	pytest
 
 lint:  ## Lint with ruff
-	ruff check src tests scripts
+	ruff check src tests scripts evals
 
 format:  ## Format with ruff
-	ruff format src tests scripts
+	ruff format src tests scripts evals
 
 format-check:  ## Verify formatting without writing
-	ruff format --check src tests scripts
+	ruff format --check src tests scripts evals
 
 types:  ## Type-check with mypy
 	mypy src
+
+eval:  ## Score retrieval against the golden set
+	python evals/run_eval.py
 
 check: lint format-check types test  ## Everything CI runs
 

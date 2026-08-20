@@ -1,0 +1,114 @@
+{
+  "corpus": "data/seed",
+  "note": "Questions are phrased the way a colleague would ask them, not with the wording of the source document, so retrieval has to do real work. Several documents deliberately share vocabulary (revenue, DAG, orders_raw, table, owner) to act as distractors.",
+  "cases": [
+    {
+      "id": "revenue-dag-schedule",
+      "question": "What time does the nightly revenue job run?",
+      "expect_sources": ["revenue_runbook.md", "airflow_operations.md"],
+      "expect_answer_contains": ["02:00"]
+    },
+    {
+      "id": "finance-export-schedule",
+      "question": "When is the finance export produced each day?",
+      "expect_sources": ["airflow_operations.md"],
+      "expect_answer_contains": ["06:00"]
+    },
+    {
+      "id": "retry-policy",
+      "question": "How many attempts does a failing task get before someone is paged?",
+      "expect_sources": ["airflow_operations.md"],
+      "expect_answer_contains": ["three", "3"]
+    },
+    {
+      "id": "backfill-limit",
+      "question": "How far back can I safely rerun the revenue pipeline?",
+      "expect_sources": ["airflow_operations.md"],
+      "expect_answer_contains": ["90"]
+    },
+    {
+      "id": "revenue-columns",
+      "question": "Which fields are in the revenue table?",
+      "expect_sources": ["warehouse_schema.md", "revenue_runbook.md"],
+      "expect_answer_contains": ["region", "month", "revenue_usd"]
+    },
+    {
+      "id": "revenue-grain",
+      "question": "What is one row of the revenue table?",
+      "expect_sources": ["warehouse_schema.md"],
+      "expect_answer_contains": ["region", "month"]
+    },
+    {
+      "id": "customer-count-inflation",
+      "question": "Why do my customer numbers come out about three times too high?",
+      "expect_sources": ["warehouse_schema.md"],
+      "expect_answer_contains": ["is_current"]
+    },
+    {
+      "id": "orders-raw-duplicates",
+      "question": "Can the same order appear twice in the landing table?",
+      "expect_sources": ["warehouse_schema.md"],
+      "expect_answer_contains": ["order_id", "deduplicated", "retry"]
+    },
+    {
+      "id": "agent-write-access",
+      "question": "Is the agent able to change anything in the warehouse?",
+      "expect_sources": ["data_access_policy.md"],
+      "expect_answer_contains": ["read-only", "SELECT"]
+    },
+    {
+      "id": "pii-email",
+      "question": "How do I get at a customer's email address?",
+      "expect_sources": ["data_access_policy.md"],
+      "expect_answer_contains": ["pii_customers", "data-pii-readers"]
+    },
+    {
+      "id": "retention",
+      "question": "How long do we keep raw data before it is dropped?",
+      "expect_sources": ["data_access_policy.md", "warehouse_schema.md"],
+      "expect_answer_contains": ["90"]
+    },
+    {
+      "id": "oncall-handover",
+      "question": "When does the on-call shift change hands?",
+      "expect_sources": ["oncall_runbook.md"],
+      "expect_answer_contains": ["Monday", "10:00"]
+    },
+    {
+      "id": "escalation",
+      "question": "At what point should I wake up the lead?",
+      "expect_sources": ["oncall_runbook.md"],
+      "expect_answer_contains": ["60", "month-end"]
+    },
+    {
+      "id": "incident-cause",
+      "question": "Why were the American figures too low in February?",
+      "expect_sources": ["incident_2026_02.md"],
+      "expect_answer_contains": ["currency", "lowercase"]
+    },
+    {
+      "id": "incident-fix",
+      "question": "What did we change after orders were silently dropped?",
+      "expect_sources": ["incident_2026_02.md"],
+      "expect_answer_contains": ["case-insensitive", "0.5%", "monitor"]
+    },
+    {
+      "id": "first-debug-step",
+      "question": "The revenue pipeline failed overnight. What do I look at first?",
+      "expect_sources": ["oncall_runbook.md", "revenue_runbook.md"],
+      "expect_answer_contains": ["orders_raw", "freshness"]
+    },
+    {
+      "id": "upstream-job",
+      "question": "Which job has to finish before revenue can be aggregated?",
+      "expect_sources": ["revenue_runbook.md", "airflow_operations.md", "warehouse_schema.md"],
+      "expect_answer_contains": ["ingest_orders"]
+    },
+    {
+      "id": "board-numbers-source",
+      "question": "Where do the numbers in the quarterly board pack come from?",
+      "expect_sources": ["revenue_runbook.md"],
+      "expect_answer_contains": ["revenue"]
+    }
+  ]
+}

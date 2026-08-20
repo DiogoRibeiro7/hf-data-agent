@@ -152,6 +152,45 @@ same question asked over MCP take an identical path.
 Every response carries an `X-Request-ID`; send your own header to correlate
 with upstream logs.
 
+## Evaluating changes
+
+A tool-calling agent cannot be judged by reading one answer, so there is a
+golden set in [evals/](evals/) and a scorer that gates CI:
+
+```bash
+make eval                                    # score retrieval
+python evals/run_eval.py --json result.json  # machine-readable
+```
+
+**Retrieval** is scored by default. It is deterministic — same corpus, same
+embedder, same numbers — so CI gates on `--min-hit-rate` and `--min-mrr`. This
+matters because a retrieval regression is otherwise silent: the agent still
+produces a fluent, confident answer, just sourced from the wrong document.
+
+**Answers** are scored only with `--answers`, and only against a real backend.
+The `mock` provider echoes the question, so the script refuses rather than emit
+a number that looks like a measurement and is not one:
+
+```bash
+DA_MODEL_BACKEND=openai_compatible python evals/run_eval.py --answers
+```
+
+### What it currently reports
+
+18 cases over `data/seed`: **hit rate 0.889, MRR 0.653**. Two cases miss, and
+they are left failing on purpose rather than removed — they show the real limit
+of the default embedder:
+
+| case          | question                                                    |
+|---------------|-------------------------------------------------------------|
+| `retry-policy`| "How many attempts does a failing task get before a page?"   |
+| `escalation`  | "At what point should I wake up the lead?"                   |
+
+Neither question shares vocabulary with the document that answers it, and the
+default `hashing` embedder is a bag-of-words trick with no notion of meaning.
+Switching to `DA_EMBEDDER_BACKEND=sentence_transformers` is the intended fix;
+the eval is how you would confirm it actually helped.
+
 ## Configuration
 
 Every setting is an environment variable prefixed `DA_`; see
