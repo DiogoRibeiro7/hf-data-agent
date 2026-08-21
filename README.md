@@ -1,6 +1,7 @@
 # hf-data-agent
 
 [![CI](https://github.com/DiogoRibeiro7/hf-data-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/DiogoRibeiro7/hf-data-agent/actions/workflows/ci.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22043399.svg)](https://doi.org/10.5281/zenodo.22043399)
 [![CodeQL](https://github.com/DiogoRibeiro7/hf-data-agent/actions/workflows/codeql.yml/badge.svg)](https://github.com/DiogoRibeiro7/hf-data-agent/actions/workflows/codeql.yml)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -409,6 +410,17 @@ make check        # lint, format, types, tests — exactly what CI runs
 
 `make help` lists every target. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
 architecture invariants a change has to preserve.
+
+## Citation
+
+Archived on Zenodo. Cite the concept DOI to point at whatever the latest
+version is, or the version DOI to pin a specific release:
+
+- concept: [10.5281/zenodo.22043399](https://doi.org/10.5281/zenodo.22043399)
+- v0.1.0: [10.5281/zenodo.22043400](https://doi.org/10.5281/zenodo.22043400)
+
+[CITATION.cff](CITATION.cff) carries the same metadata, so GitHub's
+"Cite this repository" button produces BibTeX and APA directly.
 
 ## License
 
