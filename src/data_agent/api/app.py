@@ -211,13 +211,20 @@ def tool(req: ToolRequest, rt: RuntimeDep) -> ToolResponse:
     entry = TOOLS.get(req.name)
     if entry is None:
         raise HTTPException(404, f"unknown tool {req.name!r}. available: {sorted(TOOLS)}")
-    # entry.name, not req.name: past the lookup above the caller's string is
-    # known to be a key of our own registry, so the trusted value is logged
-    # rather than a sanitised copy of untrusted input. Argument names are still
-    # the caller's, so those are scrubbed.
+    # Everything logged here comes from the registry, not from the request.
+    # Past the lookup above, req.name is known to be a key of TOOLS, and the
+    # argument names are reported by intersecting with the tool's *declared*
+    # parameters — so the values are ours. Anything the caller invented is
+    # counted rather than echoed, which is also the more useful signal: it says
+    # the model passed something the tool does not accept.
+    supplied = [name for name in sorted(entry.parameters) if name in req.args]
     logger.info(
         "tool invoked",
-        extra={"tool": entry.name, "arg_keys": [scrub(k) for k in sorted(req.args)]},
+        extra={
+            "tool": entry.name,
+            "args": supplied,
+            "unexpected_args": len(req.args) - len(supplied),
+        },
     )
     try:
         return ToolResponse(result=entry.fn(rt, **req.args))

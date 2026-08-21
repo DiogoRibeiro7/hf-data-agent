@@ -261,15 +261,26 @@ class TestLogInjection:
         logged = [r.__dict__.get("tool") for r in caplog.records if "tool" in r.__dict__]
         assert "warehouse_query" in logged
 
-    def test_crafted_argument_names_are_still_scrubbed(self, client, caplog):
-        """Argument keys stay caller-controlled, so they go through scrub."""
+    def test_invented_argument_names_are_counted_not_echoed(self, client, caplog):
+        """Argument names are reported by intersecting with the tool's declared
+        parameters, so a crafted key is counted rather than written to the log."""
+        import logging
+
+        crafted = "sql" + chr(10) + "forged"
+        with caplog.at_level(logging.INFO, logger="data_agent.api.app"):
+            client.post("/tool", json={"name": "warehouse_query", "args": {crafted: "x"}})
+        invoked = [r for r in caplog.records if r.getMessage() == "tool invoked"]
+        assert invoked
+        for record in invoked:
+            assert crafted not in str(record.__dict__.get("args", []))
+            assert record.__dict__["unexpected_args"] == 1
+
+    def test_declared_argument_names_are_reported(self, client, caplog):
         import logging
 
         with caplog.at_level(logging.INFO, logger="data_agent.api.app"):
-            client.post(
-                "/tool",
-                json={"name": "warehouse_query", "args": {"sql" + chr(10) + "forged": "x"}},
-            )
-        for record in caplog.records:
-            for key in record.__dict__.get("arg_keys", []):
-                assert chr(10) not in key
+            client.post("/tool", json={"name": "warehouse_query", "args": {"sql": "select 1"}})
+        invoked = [r for r in caplog.records if r.getMessage() == "tool invoked"]
+        assert invoked
+        assert invoked[0].__dict__["args"] == ["sql"]
+        assert invoked[0].__dict__["unexpected_args"] == 0
