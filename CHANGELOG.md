@@ -49,6 +49,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- `make test` / `make lint` / `make types` now invoke their tools as
+  `python -m ...`, so they follow whichever interpreter `python` resolves to. A
+  bare `pytest` takes the first one on PATH, which on a machine with several
+  Pythons is often not the one holding the dev extras — the symptom was
+  `make test` dying with `Unknown config option: asyncio_mode`, because
+  `--strict-config` makes an unrecognised ini key fatal when pytest-asyncio is
+  missing.
+
 - The type check no longer depends on which optional extras a machine happens to
   have. `python_version = "3.10"` made mypy reject third-party stubs written
   with newer syntax — numpy's, reached through sentence-transformers — so

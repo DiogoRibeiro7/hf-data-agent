@@ -32,20 +32,23 @@ slack:  ## Slack bot (needs ".[slack]")
 	python -m data_agent.entrypoints.slack_app
 
 # ---------------------------------------------------------------- checks ----
+# Tools are invoked as `python -m` so they follow whichever interpreter `python`
+# resolves to. A bare `pytest`/`ruff`/`mypy` picks the first one on PATH, which
+# on a machine with several Pythons is often not the one holding the dev extras.
 test:  ## Run the test suite with coverage
-	pytest
+	python -m pytest
 
 lint:  ## Lint with ruff
-	ruff check src tests scripts evals airflow
+	python -m ruff check src tests scripts evals airflow
 
 format:  ## Format with ruff
-	ruff format src tests scripts evals airflow
+	python -m ruff format src tests scripts evals airflow
 
 format-check:  ## Verify formatting without writing
-	ruff format --check src tests scripts evals airflow
+	python -m ruff format --check src tests scripts evals airflow
 
 types:  ## Type-check with mypy
-	mypy src
+	python -m mypy src
 
 eval:  ## Score retrieval against the golden set
 	python evals/run_eval.py
