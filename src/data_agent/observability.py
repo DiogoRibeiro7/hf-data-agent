@@ -38,8 +38,15 @@ def scrub(value: object, limit: int = 200) -> str:
     The JSON formatter escapes newlines on its own, but the default text
     formatter does not: a tool name containing a newline would otherwise write
     what looks like a second, forged log entry.
+
+    The line breaks are removed with explicit `str.replace` calls before the
+    broader control-character pass. That is redundant on its own terms — the
+    regex would catch them — but taint analysers recognise newline replacement
+    as a log-injection sanitiser and cannot infer the same from a character
+    class, so writing it this way lets the tooling see what the code does.
     """
-    return _CONTROL.sub(" ", str(value))[:limit]
+    text = str(value).replace(chr(13), " ").replace(chr(10), " ")
+    return _CONTROL.sub(" ", text)[:limit]
 
 
 def new_request_id() -> str:
