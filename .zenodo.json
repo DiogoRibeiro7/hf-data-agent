@@ -1,8 +1,15 @@
 {
-  "title": "hf-data-agent",
+  "title": "hf-data-agent: a Hugging Face backed RAG data agent",
   "upload_type": "software",
-  "description": "An internal RAG data agent with shared UI, HTTP API, MCP, and Slack entrypoints; offline knowledge ingestion; live data-platform tools; and pluggable Hugging Face model backends.",
+  "description": "hf-data-agent is a Python research-software prototype for a retrieval-augmented data agent. It routes UI, HTTP API, MCP, and Slack entrypoints through one orchestrator; builds its knowledge base offline; queries warehouse and platform tools live; and supports mock, local Hugging Face Transformers, hosted Hugging Face Inference, and OpenAI-compatible model backends.",
   "creators": [
+    {
+      "name": "Ribeiro, Diogo",
+      "affiliation": "ESMAD - Instituto Politécnico do Porto",
+      "orcid": "0009-0001-2022-7072"
+    }
+  ],
+  "contributors": [
     {
       "name": "Ribeiro, Diogo",
       "affiliation": "ESMAD - Instituto Politécnico do Porto",
@@ -13,18 +20,38 @@
   "access_right": "open",
   "license": "MIT",
   "version": "0.1.0",
+  "publication_date": "2026-08-21",
   "language": "eng",
   "keywords": [
     "ai-agent",
     "data-agent",
+    "data-platform",
     "fastapi",
     "huggingface",
+    "knowledge-base",
     "llm",
     "mcp",
     "model-context-protocol",
+    "python",
     "rag",
     "retrieval-augmented-generation",
     "sqlite",
+    "vector-search",
     "warehouse"
-  ]
+  ],
+  "related_identifiers": [
+    {
+      "scheme": "url",
+      "identifier": "https://github.com/DiogoRibeiro7/hf-data-agent",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "scheme": "url",
+      "identifier": "https://github.com/DiogoRibeiro7/hf-data-agent/blob/main/README.md",
+      "relation": "isDocumentedBy",
+      "resource_type": "publication-softwaredocumentation"
+    }
+  ],
+  "notes": "This record archives the source code released from GitHub. Local secrets, virtual environments, generated caches, SQLite databases, and generated vector stores are excluded by the repository ignore rules."
 }

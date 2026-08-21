@@ -1,7 +1,8 @@
 cff-version: 1.2.0
-message: "If you use hf-data-agent, please cite it using the metadata from this file."
-title: "hf-data-agent"
-abstract: "An internal RAG data agent with shared UI, HTTP API, MCP, and Slack entrypoints; offline knowledge ingestion; live data-platform tools; and pluggable Hugging Face model backends."
+message: "If you use hf-data-agent, please cite the archived software release. After the first Zenodo release, replace the placeholder identifier with the Zenodo concept DOI."
+type: software
+title: "hf-data-agent: a Hugging Face backed RAG data agent"
+abstract: "hf-data-agent is a Python research-software prototype for a retrieval-augmented data agent. It routes UI, HTTP API, MCP, and Slack entrypoints through one orchestrator; builds its knowledge base offline; queries warehouse and platform tools live; and supports mock, local Hugging Face Transformers, hosted Hugging Face Inference, and OpenAI-compatible model backends."
 authors:
   - family-names: "Ribeiro"
     given-names: "Diogo"
@@ -11,12 +12,23 @@ version: "0.1.0"
 date-released: "2026-08-21"
 license: "MIT"
 repository-code: "https://github.com/DiogoRibeiro7/hf-data-agent"
+url: "https://github.com/DiogoRibeiro7/hf-data-agent"
+identifiers:
+  - type: url
+    value: "https://github.com/DiogoRibeiro7/hf-data-agent"
+    description: "Source repository"
 keywords:
   - "ai-agent"
   - "data-agent"
+  - "data-platform"
   - "fastapi"
   - "huggingface"
+  - "knowledge-base"
   - "llm"
   - "mcp"
+  - "model-context-protocol"
+  - "python"
   - "rag"
   - "retrieval-augmented-generation"
+  - "vector-search"
+  - "warehouse"
