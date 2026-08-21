@@ -409,51 +409,6 @@ make check        # lint, format, types, tests — exactly what CI runs
 `make help` lists every target. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
 architecture invariants a change has to preserve.
 
-## Archiving
-
-The repository is prepared for Zenodo archival through GitHub releases.
-
-- [.zenodo.json](.zenodo.json) is the authoritative Zenodo metadata: title,
-  creator, affiliation, ORCID, license, keywords, release date, and related
-  GitHub documentation links.
-- [CITATION.cff](CITATION.cff) powers GitHub's "Cite this repository" panel and
-  local citation tooling. Zenodo ignores `CITATION.cff` when `.zenodo.json` is
-  also present, so keep shared fields aligned in both files.
-- The source archive relies on GitHub's generated release tarball. Secrets,
-  caches, virtual environments, generated SQLite databases, and vector-store
-  artifacts stay out of the archive through `.gitignore` and Git's local
-  exclude rules.
-
-First DOI setup:
-
-1. Link your GitHub account in Zenodo.
-2. In Zenodo's GitHub page, click **Sync now** and enable
-   `DiogoRibeiro7/hf-data-agent`.
-3. Create a GitHub release from a version tag, for example `v0.1.0`.
-4. Wait for Zenodo to archive the release and mint the concept DOI plus the
-   version DOI.
-5. Add the Zenodo DOI badge near the top of this README and add the DOI to
-   `CITATION.cff` once Zenodo shows the final value.
-
-Badge template after Zenodo mints the DOI:
-
-```md
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.<concept-id>.svg)](https://doi.org/10.5281/zenodo.<concept-id>)
-```
-
-Release checklist:
-
-```bash
-make check
-git status --short
-git tag -a v0.1.0 -m "hf-data-agent v0.1.0"
-git push origin main v0.1.0
-```
-
-Do not commit Zenodo API tokens. The GitHub integration does not need a token in
-this repository; keep any Zenodo token in the Zenodo account or local
-environment only.
-
 ## License
 
 [MIT](LICENSE)
