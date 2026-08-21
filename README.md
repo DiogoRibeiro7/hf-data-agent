@@ -417,6 +417,7 @@ Archived on Zenodo. Cite the concept DOI to point at whatever the latest
 version is, or the version DOI to pin a specific release:
 
 - concept: [10.5281/zenodo.22043399](https://doi.org/10.5281/zenodo.22043399)
+- v0.1.1: [10.5281/zenodo.22044463](https://doi.org/10.5281/zenodo.22044463)
 - v0.1.0: [10.5281/zenodo.22043400](https://doi.org/10.5281/zenodo.22043400)
 
 [CITATION.cff](CITATION.cff) carries the same metadata, so GitHub's
