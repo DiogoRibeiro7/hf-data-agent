@@ -60,7 +60,10 @@ docker-build:  ## Build the container image
 	docker build -t hf-data-agent:local .
 
 docker-run:  ## Run the container locally (explicitly unauthenticated)
-	docker run --rm -p 8000:8000 \n	  -e DA_MODEL_BACKEND=mock \n	  -e DA_ALLOW_UNAUTHENTICATED=true \n	  hf-data-agent:local
+	docker run --rm -p 8000:8000 \
+	  -e DA_MODEL_BACKEND=mock \
+	  -e DA_ALLOW_UNAUTHENTICATED=true \
+	  hf-data-agent:local
 
 # ----------------------------------------------------------------- misc -----
 clean:  ## Remove caches and generated artifacts

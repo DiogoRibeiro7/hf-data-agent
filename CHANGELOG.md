@@ -7,7 +7,34 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **The agent UI was completely broken.** Two SSE delimiters in the page's
+  `<script>` were written as literal newlines inside string literals rather than
+  `
+` escapes, so the whole script failed to parse: the page rendered and
+  asking a question did nothing. Shipped in the streaming change and present in
+  v0.1.0. `node --check` on the extracted script now runs as a test.
+- **Tool failures leaked internal detail to clients.** `/tool` had been hardened
+  against this, but the model-driven path had not: `ToolInvocation.result`
+  carried the raw adapter exception, and `steps[]` is serialised into `/ask`
+  responses and SSE frames, so a DSN or filesystem path still reached callers.
+  The model keeps the detail — it needs it to correct — while clients get the
+  exception type only. The SQL guard's message stays verbatim, since it
+  describes the caller's own statement.
+- **The Airflow dag id was interpolated into a URL unescaped.** A value
+  containing `?`, `#` or `/` rewrote the request path, so
+  `daily_revenue?limit=1` became a different call. Now percent-encoded.
+- **`make docker-run` could not work.** Its recipe contained the two characters
+  backslash-n instead of line continuations, so docker received them as
+  arguments.
+
+### Added
+
+- Tests for assets the Python suite never touched: the UI script is parsed with
+  node, and every self-documented Makefile target is expanded with `make -n`.
+  Both regressions above came from writing escape sequences through a shell
+  heredoc, which review misses and a test catches.
 
 ## [0.1.0] - 2026-08-21
 

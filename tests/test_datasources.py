@@ -84,3 +84,45 @@ class TestStubs:
     def test_metadata_is_not_implemented(self):
         with pytest.raises(NotImplementedError, match="catalog"):
             MetadataSource("http://catalog").query("lineage")
+
+
+class TestDagIdEncoding:
+    """The dag id can come from the model, so it must not be able to rewrite the
+    request. Unencoded, `daily_revenue?limit=1` turns the path into
+    `/api/v1/dags/daily_revenue?limit=1/dagRuns` — a different call entirely."""
+
+    def _capture(self, monkeypatch, statement):
+        seen = {}
+
+        def fake_get(url, **kwargs):
+            seen["url"] = str(url)
+            return httpx.Response(200, json={"dag_runs": []}, request=httpx.Request("GET", url))
+
+        monkeypatch.setattr(httpx, "get", fake_get)
+        AirflowSource("http://airflow:8080").query(statement)
+        return seen["url"]
+
+    def test_a_plain_dag_id_is_unchanged(self, monkeypatch):
+        url = self._capture(monkeypatch, "daily_revenue")
+        assert url == "http://airflow:8080/api/v1/dags/daily_revenue/dagRuns"
+
+    @pytest.mark.parametrize(
+        "injected",
+        [
+            pytest.param("daily_revenue?limit=1", id="query-string"),
+            pytest.param("daily_revenue/../../secret", id="traversal"),
+            pytest.param("daily_revenue#frag", id="fragment"),
+            pytest.param("a b", id="space"),
+        ],
+    )
+    def test_special_characters_cannot_rewrite_the_path(self, monkeypatch, injected):
+        url = self._capture(monkeypatch, injected)
+        tail = url.split("/api/v1/dags/", 1)[1]
+        # Everything the caller supplied stays inside the one path segment.
+        assert tail.endswith("/dagRuns")
+        segment = tail[: -len("/dagRuns")]
+        for char in "?#/":
+            assert char not in segment, f"{char!r} survived into the path segment"
+
+    def test_the_listing_path_is_untouched(self, monkeypatch):
+        assert self._capture(monkeypatch, "list").endswith("/api/v1/dags")

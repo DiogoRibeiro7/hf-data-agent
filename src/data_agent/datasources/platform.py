@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 import httpx
 
 from data_agent.datasources.base import QueryResult
@@ -30,7 +32,14 @@ class AirflowSource:
 
     def query(self, statement: str) -> QueryResult:
         dag_id = statement.strip()
-        path = "/api/v1/dags" if dag_id in {"", "list"} else f"/api/v1/dags/{dag_id}/dagRuns"
+        # The dag id can come from the model, so it is escaped rather than
+        # interpolated: an unencoded '?' or '/' would rewrite the path and query
+        # actually sent to Airflow.
+        path = (
+            "/api/v1/dags"
+            if dag_id in {"", "list"}
+            else f"/api/v1/dags/{quote(dag_id, safe='')}/dagRuns"
+        )
         resp = httpx.get(self.base_url + path, auth=self.auth, timeout=30.0)
         resp.raise_for_status()
         data = resp.json()

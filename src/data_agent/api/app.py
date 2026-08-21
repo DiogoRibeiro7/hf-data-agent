@@ -129,7 +129,8 @@ async def ask(req: AskRequest, rt: RuntimeDep) -> AskResponse:
         answer=reply.answer,
         contexts=[ContextOut(source=c.source, score=c.score, text=c.text) for c in reply.contexts],
         steps=[
-            ToolStepOut(tool=s.tool, args=s.args, result=s.result, ok=s.ok) for s in reply.steps
+            ToolStepOut(tool=s.tool, args=s.args, result=s.shareable_result, ok=s.ok)
+            for s in reply.steps
         ],
         step_limit_reached=reply.step_limit_reached,
     )
@@ -164,7 +165,7 @@ async def ask_stream(req: AskRequest, rt: RuntimeDep) -> StreamingResponse:
                             "tool": event.step.tool,
                             "args": event.step.args,
                             "ok": event.step.ok,
-                            "result": event.step.result,
+                            "result": event.step.shareable_result,
                         },
                     )
                 else:
@@ -178,7 +179,12 @@ async def ask_stream(req: AskRequest, rt: RuntimeDep) -> StreamingResponse:
                                 for c in reply.contexts
                             ],
                             "steps": [
-                                {"tool": s.tool, "args": s.args, "ok": s.ok, "result": s.result}
+                                {
+                                    "tool": s.tool,
+                                    "args": s.args,
+                                    "ok": s.ok,
+                                    "result": s.shareable_result,
+                                }
                                 for s in reply.steps
                             ],
                             "step_limit_reached": reply.step_limit_reached,

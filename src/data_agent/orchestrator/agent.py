@@ -20,6 +20,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
+from data_agent.datasources.sql_guard import UnsafeSQLError
 from data_agent.knowledge.retriever import RetrievedContext
 from data_agent.mcp.tools import TOOLS, ToolSpec
 from data_agent.model.base import CONTEXT_MARKER, Message
@@ -56,8 +57,18 @@ class ToolInvocation:
 
     tool: str
     args: dict[str, Any]
+    #: What the model is shown. A failure needs detail here, or it cannot correct.
     result: str
     ok: bool
+    #: What an external caller may be shown, when that differs. An adapter
+    #: exception can carry a DSN, a filesystem path or the failing statement, and
+    #: `steps` is serialised into /ask responses and SSE frames.
+    client_result: str | None = None
+
+    @property
+    def shareable_result(self) -> str:
+        """The result as it may leave the process."""
+        return self.result if self.client_result is None else self.client_result
 
 
 @dataclass
@@ -145,12 +156,22 @@ class Orchestrator:
 
         try:
             output = spec.fn(self.rt, **call.args)
-        except Exception as exc:  # surfaced to the model, not to the caller
-            logger.info(
-                "tool call failed",
-                extra={"tool": call.name, "error": type(exc).__name__},
+        except UnsafeSQLError as exc:
+            # The guard describes the caller's own statement, so this is safe to
+            # pass on as-is and genuinely useful to whoever sent it.
+            logger.info("tool call rejected", extra={"tool": call.name})
+            return ToolInvocation(call.name, call.args, f"UnsafeSQLError: {exc}", ok=False)
+        except Exception as exc:
+            # The model needs the detail; the caller gets the type only. Same
+            # reasoning as the /tool route, which this path had been missing.
+            logger.exception("tool call failed", extra={"tool": call.name})
+            return ToolInvocation(
+                call.name,
+                call.args,
+                f"{type(exc).__name__}: {exc}",
+                ok=False,
+                client_result=f"the tool failed ({type(exc).__name__})",
             )
-            return ToolInvocation(call.name, call.args, f"{type(exc).__name__}: {exc}", ok=False)
 
         limit = self.rt.settings.tool_result_max_chars
         if len(output) > limit:

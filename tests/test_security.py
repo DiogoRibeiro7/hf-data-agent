@@ -7,6 +7,8 @@ routable interface without one.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -284,3 +286,92 @@ class TestLogInjection:
         assert invoked
         assert invoked[0].__dict__["tool_args"] == ["sql"]
         assert invoked[0].__dict__["unexpected_args"] == 0
+
+
+class TestToolResultDisclosure:
+    """The model-driven tool path leaked what /tool had been hardened against.
+
+    `steps[].result` is serialised into /ask responses and SSE frames, so an
+    adapter exception reached clients even though the same text was suppressed
+    on the direct /tool route.
+    """
+
+    LEAK = "connection to postgres://user:pw@dbhost/analytics failed"
+
+    def _runtime_with_exploding_warehouse(self, runtime):
+        leak = self.LEAK
+
+        class Exploding:
+            name = "warehouse"
+
+            def query(self, statement):
+                raise RuntimeError(leak)
+
+        runtime.datasources["warehouse"] = Exploding()
+        return runtime
+
+    def _scripted(self, runtime):
+        import json
+
+        call = json.dumps({"tool": "warehouse_query", "args": {"sql": "select 1"}})
+
+        class Scripted:
+            def __init__(self):
+                self.turns = [call, "I could not read the warehouse."]
+
+            async def generate(self, messages):
+                return self.turns.pop(0) if self.turns else "done"
+
+            async def generate_stream(self, messages):
+                yield await self.generate(messages)
+
+        runtime.model = Scripted()
+        return runtime
+
+    async def test_the_model_still_sees_the_detail(self, runtime):
+        """It has to, or it cannot explain or correct the failure."""
+        from data_agent.orchestrator.agent import Orchestrator
+
+        rt = self._scripted(self._runtime_with_exploding_warehouse(runtime))
+        reply = await Orchestrator(rt).answer("how much revenue?")
+        assert self.LEAK in reply.steps[0].result
+
+    async def test_the_client_facing_result_is_redacted(self, runtime):
+        from data_agent.orchestrator.agent import Orchestrator
+
+        rt = self._scripted(self._runtime_with_exploding_warehouse(runtime))
+        reply = await Orchestrator(rt).answer("how much revenue?")
+        shareable = reply.steps[0].shareable_result
+        assert self.LEAK not in shareable
+        assert "postgres://" not in shareable
+        assert "RuntimeError" in shareable  # the type alone is harmless and useful
+
+    def test_ask_does_not_ship_the_exception_text(self, client, runtime):
+        self._scripted(self._runtime_with_exploding_warehouse(runtime))
+        body = client.post("/ask", json={"question": "how much revenue?"}).json()
+        assert body["steps"]
+        assert "postgres://" not in json.dumps(body)
+
+    def test_ask_stream_does_not_ship_the_exception_text(self, client, runtime):
+        self._scripted(self._runtime_with_exploding_warehouse(runtime))
+        text = client.post("/ask/stream", json={"question": "how much revenue?"}).text
+        assert "step" in text
+        assert "postgres://" not in text
+
+    async def test_a_rejected_statement_is_still_explained(self, runtime):
+        """The SQL guard's message describes the caller's own statement, so it
+        stays useful rather than being redacted with everything else."""
+        from data_agent.orchestrator.agent import Orchestrator
+
+        call = json.dumps({"tool": "warehouse_query", "args": {"sql": "DROP TABLE revenue"}})
+
+        class Scripted:
+            def __init__(self):
+                self.turns = [call, "I cannot do that."]
+
+            async def generate(self, messages):
+                return self.turns.pop(0) if self.turns else "done"
+
+        runtime.model = Scripted()
+        reply = await Orchestrator(runtime).answer("drop it")
+        assert "read-only" in reply.steps[0].shareable_result.lower()
