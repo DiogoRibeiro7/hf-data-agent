@@ -7,6 +7,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.0] - 2026-08-21
+
+First tagged release. Everything below is the initial published state
+rather than a change from a previous version.
+
 ### Security
 
 - **Internal exception text no longer reaches the caller.** `POST /tool` returned
@@ -218,3 +225,6 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `scripts/ingest.py` takes proper arguments via `argparse`, including
   `--append`.
 - The package version has one source of truth instead of three.
+
+[Unreleased]: https://github.com/DiogoRibeiro7/hf-data-agent/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/DiogoRibeiro7/hf-data-agent/releases/tag/v0.1.0
