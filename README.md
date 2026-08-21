@@ -356,6 +356,17 @@ make check        # lint, format, types, tests — exactly what CI runs
 `make help` lists every target. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
 architecture invariants a change has to preserve.
 
+## Archiving
+
+Zenodo release metadata lives in [.zenodo.json](.zenodo.json). GitHub citation
+metadata lives in [CITATION.cff](CITATION.cff), but Zenodo uses
+`.zenodo.json` when both files are present.
+
+To mint a DOI, enable this repository in Zenodo's GitHub integration and create
+a GitHub release. Zenodo will archive the release tarball and use the metadata
+from `.zenodo.json`. Do not commit Zenodo API tokens; keep any token in the
+Zenodo account or local environment only.
+
 ## License
 
 [MIT](LICENSE)

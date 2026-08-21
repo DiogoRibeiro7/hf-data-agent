@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use hf-data-agent, please cite it using the metadata from this file."
+title: "hf-data-agent"
+abstract: "An internal RAG data agent with shared UI, HTTP API, MCP, and Slack entrypoints; offline knowledge ingestion; live data-platform tools; and pluggable Hugging Face model backends."
+authors:
+  - family-names: "Ribeiro"
+    given-names: "Diogo"
+version: "0.1.0"
+date-released: "2026-08-21"
+license: "MIT"
+repository-code: "https://github.com/DiogoRibeiro7/hf-data-agent"
+keywords:
+  - "ai-agent"
+  - "data-agent"
+  - "fastapi"
+  - "huggingface"
+  - "llm"
+  - "mcp"
+  - "rag"
+  - "retrieval-augmented-generation"

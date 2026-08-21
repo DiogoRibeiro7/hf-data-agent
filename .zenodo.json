@@ -1,0 +1,27 @@
+{
+  "title": "hf-data-agent",
+  "upload_type": "software",
+  "description": "An internal RAG data agent with shared UI, HTTP API, MCP, and Slack entrypoints; offline knowledge ingestion; live data-platform tools; and pluggable Hugging Face model backends.",
+  "creators": [
+    {
+      "name": "Ribeiro, Diogo"
+    }
+  ],
+  "access_right": "open",
+  "license": "MIT",
+  "version": "0.1.0",
+  "language": "eng",
+  "keywords": [
+    "ai-agent",
+    "data-agent",
+    "fastapi",
+    "huggingface",
+    "llm",
+    "mcp",
+    "model-context-protocol",
+    "rag",
+    "retrieval-augmented-generation",
+    "sqlite",
+    "warehouse"
+  ]
+}
