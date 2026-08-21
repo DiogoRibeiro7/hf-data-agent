@@ -4,6 +4,10 @@
 
 This project is pre-1.0. Only the tip of `main` receives security fixes.
 
+CodeQL analysis runs on every push to `main` and weekly. It was dormant while
+the repository was private, because code scanning there needs GitHub Advanced
+Security; the workflow enables itself now that the repository is public.
+
 ## Reporting a vulnerability
 
 Please **do not open a public issue** for a security problem.
