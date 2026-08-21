@@ -4,7 +4,10 @@
   "description": "An internal RAG data agent with shared UI, HTTP API, MCP, and Slack entrypoints; offline knowledge ingestion; live data-platform tools; and pluggable Hugging Face model backends.",
   "creators": [
     {
-      "name": "Ribeiro, Diogo"
+      "name": "Ribeiro, Diogo",
+      "affiliation": "ESMAD - Instituto Politécnico do Porto",
+      "orcid": "0009-0001-2022-7072",
+      "type": "ProjectLeader"
     }
   ],
   "access_right": "open",

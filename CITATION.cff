@@ -5,6 +5,8 @@ abstract: "An internal RAG data agent with shared UI, HTTP API, MCP, and Slack e
 authors:
   - family-names: "Ribeiro"
     given-names: "Diogo"
+    affiliation: "ESMAD - Instituto Politécnico do Porto"
+    orcid: "https://orcid.org/0009-0001-2022-7072"
 version: "0.1.0"
 date-released: "2026-08-21"
 license: "MIT"
