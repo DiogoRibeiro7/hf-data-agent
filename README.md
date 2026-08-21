@@ -409,7 +409,9 @@ make check        # lint, format, types, tests — exactly what CI runs
 ```
 
 `make help` lists every target. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
-architecture invariants a change has to preserve.
+architecture invariants a change has to preserve, and [ROADMAP.md](ROADMAP.md)
+for what is missing and what would close it — including the parts of this
+repository that have never run against the real service they talk to.
 
 ## Citation
 

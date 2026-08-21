@@ -74,6 +74,13 @@ discussion in the pull request, not a quiet workaround.
   diff — say what breaks if the change is wrong.
 - Update `CHANGELOG.md` under `## [Unreleased]` for anything user-visible.
 
+## Picking something to work on
+
+[ROADMAP.md](ROADMAP.md) lists the known gaps in priority order, each with a
+definition of done. The verification items at the top are the most valuable
+and the least glamorous: several modules are shipped but have never run
+against the service they were written for.
+
 ## Reporting security issues
 
 Do not open a public issue for a vulnerability. See [SECURITY.md](SECURITY.md).
