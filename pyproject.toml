@@ -61,6 +61,7 @@ all = ["hf-data-agent[transformers,embeddings,mcp,slack,gdocs,qdrant,dev]"]
 
 [project.scripts]
 data-agent-api = "data_agent.entrypoints.run_api:main"
+data-agent-ingest = "data_agent.entrypoints.ingest:main"
 data-agent-mcp-local = "data_agent.entrypoints.mcp_local:main"
 data-agent-mcp-remote = "data_agent.entrypoints.mcp_remote:main"
 data-agent-slack = "data_agent.entrypoints.slack_app:main"
@@ -100,7 +101,11 @@ branch = true
 source = ["data_agent"]
 omit = [
     # Thin `main()` shims around a server library; exercised by running them.
-    "*/entrypoints/*",
+    # entrypoints/ingest.py is deliberately NOT here: it has real logic.
+    "*/entrypoints/run_api.py",
+    "*/entrypoints/mcp_local.py",
+    "*/entrypoints/mcp_remote.py",
+    "*/entrypoints/slack_app.py",
     # Requires torch + a model download, so it is not covered in CI.
     "*/model/transformers_provider.py",
     # Requires the optional `mcp` / `slack_bolt` extras.
@@ -164,7 +169,12 @@ docstring-code-format = true
 
 # ---------------------------------------------------------------- types ----
 [tool.mypy]
-python_version = "3.10"
+# No python_version pin. Pinning it to 3.10 made mypy reject third-party stubs
+# written with newer syntax (numpy's, reached through sentence-transformers), so
+# the check passed or failed depending on which optional extras a machine had.
+# The CI quality job runs mypy on Python 3.10 instead, so the floor is enforced
+# by the interpreter rather than by a setting that breaks on other people's
+# dependencies.
 files = ["src"]
 strict = true
 warn_unreachable = true
@@ -185,11 +195,18 @@ disallow_untyped_decorators = false
 module = ["data_agent.knowledge.sources.gdocs"]
 disallow_untyped_calls = false
 
+# The optional backends are treated as opaque whether or not they happen to be
+# installed. ignore_missing_imports alone only covers the absent case, so the
+# result depended on which extras a given machine had: with
+# sentence-transformers present, mypy followed it into numpy's stubs and failed
+# on syntax newer than our target python_version. follow_imports=skip makes the
+# check give the same answer everywhere.
 [[tool.mypy.overrides]]
 module = [
     "transformers.*",
     "sentence_transformers.*",
     "torch.*",
+    "numpy.*",
     "mcp.*",
     "slack_bolt.*",
     "google.*",
@@ -197,3 +214,4 @@ module = [
     "qdrant_client.*",
 ]
 ignore_missing_imports = true
+follow_imports = "skip"

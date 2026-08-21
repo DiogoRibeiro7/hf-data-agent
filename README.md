@@ -243,6 +243,32 @@ A few things worth knowing before you switch:
   give them different `DA_QDRANT_COLLECTION` values or an ingest in one will
   wipe the other.
 
+## Scheduling ingestion
+
+The knowledge base is built offline, so something has to rebuild it. An example
+Airflow DAG is in [airflow/dags/data_agent_ingest.py](airflow/dags/data_agent_ingest.py):
+copy it into your `dags/` folder, install the package on the workers, and give
+them the same `DA_*` environment the API uses — otherwise it will diligently
+rebuild a store nobody reads.
+
+```bash
+pip install hf-data-agent          # on the workers
+export DA_INGEST_ROOT=/srv/knowledge
+export DA_INGEST_FLAGS="--notion --slack"
+```
+
+It runs `data-agent-ingest` at 03:00 UTC, with `catchup=False` (a rebuild always
+uses the sources as they are *now*, so replaying missed intervals would just run
+the same job repeatedly) and `max_active_runs=1` (two concurrent rebuilds race
+on one store — one clears it while the other writes).
+
+Any scheduler works: the entrypoint is an ordinary console script, and cron
+calling `data-agent-ingest /srv/knowledge` is a perfectly good alternative.
+
+> **Not run against a real Airflow instance.** The work it performs is the same
+> tested entrypoint the CLI uses, and the DAG's structure is asserted, but no
+> scheduler has parsed the file.
+
 ## Evaluating changes
 
 A tool-calling agent cannot be judged by reading one answer, so there is a
@@ -343,7 +369,7 @@ src/data_agent/
   knowledge/           RAG: embedder, store, sources, offline ingest, online retrieve
   datasources/         live adapters: warehouse (guarded), spark/airflow/metadata
   mcp/                 MCP server + the ToolSpec registry (tools defined once)
-  entrypoints/         ui / api / mcp_local / mcp_remote / slack
+  entrypoints/         ui / api / ingest / mcp_local / mcp_remote / slack
 ```
 
 ## Development

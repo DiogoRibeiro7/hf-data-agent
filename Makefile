@@ -36,13 +36,13 @@ test:  ## Run the test suite with coverage
 	pytest
 
 lint:  ## Lint with ruff
-	ruff check src tests scripts evals
+	ruff check src tests scripts evals airflow
 
 format:  ## Format with ruff
-	ruff format src tests scripts evals
+	ruff format src tests scripts evals airflow
 
 format-check:  ## Verify formatting without writing
-	ruff format --check src tests scripts evals
+	ruff format --check src tests scripts evals airflow
 
 types:  ## Type-check with mypy
 	mypy src

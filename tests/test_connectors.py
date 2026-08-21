@@ -425,9 +425,8 @@ class TestIngestCli:
     """
 
     def build(self, argv, **settings_kwargs):
-        from scripts.ingest import build_sources, parse_args
-
         from data_agent.config import Settings
+        from data_agent.entrypoints.ingest import build_sources, parse_args
 
         return build_sources(parse_args(argv), Settings(**settings_kwargs))
 

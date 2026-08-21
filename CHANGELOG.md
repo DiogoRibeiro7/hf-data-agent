@@ -49,6 +49,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- The type check no longer depends on which optional extras a machine happens to
+  have. `python_version = "3.10"` made mypy reject third-party stubs written
+  with newer syntax — numpy's, reached through sentence-transformers — so
+  `make types` passed or failed by environment. The floor is now enforced by
+  running mypy on Python 3.10 in CI.
+- The CI quality job invokes the Makefile targets, having drifted from them:
+  it was linting `src tests scripts` while `make lint` also covered `evals`.
+
 - The MCP entrypoints were broken against current releases: `mcp` 2.0 removed
   `mcp.server.fastmcp`, which `mcp/server.py` imports, and the `mcp>=1.2`
   constraint resolved straight to it. Pinned to `>=1.9,<2` and verified, with a
@@ -78,6 +86,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   wrong signature.
 
 ### Added
+
+- **Example Airflow ingestion DAG** (roadmap item 10), making the
+  "pre-processed offline" arrow concrete. `catchup=False`, because a rebuild
+  always uses the sources as they are now, and `max_active_runs=1`, because two
+  concurrent rebuilds race on one store.
+- The ingestion CLI moved from `scripts/ingest.py` into
+  `data_agent.entrypoints.ingest`, with a `data-agent-ingest` console script:
+  an Airflow worker installs the wheel, not the repository.
+  `python scripts/ingest.py` still works via a shim.
 
 - **Qdrant vector store** (roadmap item 05), selected with
   `DA_VECTOR_BACKEND=qdrant` and the new `qdrant` extra. The JSON store stays
