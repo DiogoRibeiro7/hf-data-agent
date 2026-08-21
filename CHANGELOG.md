@@ -9,6 +9,19 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Security
 
+- **Internal exception text no longer reaches the caller.** `POST /tool` returned
+  `str(exc)` on a 500 and the `/ask/stream` error frame carried
+  `f"{type(exc).__name__}: {exc}"` — either can contain a DSN fragment, a
+  filesystem path, or the statement that failed. Both now log the detail with
+  the request id and return that id instead. 400s still explain themselves,
+  since they describe the caller's own mistake.
+- **Caller-controlled values are scrubbed before they reach a log record.**
+  `req.name` went straight into a log line; under the default text formatter a
+  newline in a tool name writes what looks like a second, forged entry. The new
+  `observability.scrub` strips control characters and truncates.
+- Both were reported by CodeQL, which only began analysing once the repository
+  became public — the workflow had been dormant behind a visibility guard.
+
 - **The remote MCP transport now requires the same bearer token.** The MCP
   library only offers OAuth resource-server auth — it rejects a token verifier
   unless handed an issuer URL and a resource server URL — so rather than invent

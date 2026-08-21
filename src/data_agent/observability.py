@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sys
 import uuid
 from contextvars import ContextVar
@@ -25,6 +26,20 @@ _CONFIGURED = False
 
 # Attributes LogRecord always carries; anything else was passed via `extra`.
 _STANDARD_ATTRS = frozenset(logging.makeLogRecord({}).__dict__) | {"message", "asctime"}
+
+
+#: Control characters that would let untrusted text forge extra log lines.
+_CONTROL = re.compile("[" + chr(0) + "-" + chr(31) + chr(127) + "]")
+
+
+def scrub(value: object, limit: int = 200) -> str:
+    """Make an untrusted value safe to put in a log record.
+
+    The JSON formatter escapes newlines on its own, but the default text
+    formatter does not: a tool name containing a newline would otherwise write
+    what looks like a second, forged log entry.
+    """
+    return _CONTROL.sub(" ", str(value))[:limit]
 
 
 def new_request_id() -> str:

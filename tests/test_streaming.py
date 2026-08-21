@@ -317,5 +317,11 @@ class TestAskStreamEndpoint:
             app.dependency_overrides.clear()
 
         assert response.status_code == 200
-        assert ("error", frames[-1][1]) == (frames[-1][0], frames[-1][1])
-        assert "backend on fire" in frames[-1][1]["detail"]
+        name, payload = frames[-1]
+        assert name == "error"
+        # The exception text stays in the log. It can carry a DSN fragment, a
+        # path, or the failing SQL, and this frame goes straight to the caller.
+        assert "backend on fire" not in payload["detail"]
+        assert "RuntimeError" not in payload["detail"]
+        # A correlation id is given instead, so the failure is still traceable.
+        assert payload["request_id"]

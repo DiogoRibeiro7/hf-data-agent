@@ -194,3 +194,58 @@ class TestDefaults:
     def test_the_default_configuration_passes_both_guards(self):
         require_safe_binding(Settings())
         require_safe_mcp_binding(Settings())
+
+
+class TestErrorDisclosure:
+    """CodeQL flagged both of these once the repository went public."""
+
+    def test_an_internal_failure_does_not_return_the_exception_text(self, client, runtime):
+        """A 500 body reaches the caller; an exception message can carry a DSN
+        fragment, a filesystem path, or the statement that failed."""
+
+        class Exploding:
+            name = "warehouse"
+
+            def query(self, statement):
+                raise RuntimeError("connection to postgres://user:pw@host failed")
+
+        runtime.datasources["warehouse"] = Exploding()
+        response = client.post(
+            "/tool", json={"name": "warehouse_query", "args": {"sql": "select 1"}}
+        )
+        assert response.status_code == 500
+        detail = response.json()["detail"]
+        assert "postgres://" not in detail
+        assert "RuntimeError" not in detail
+        assert "request" in detail  # the correlation id is offered instead
+
+    def test_a_rejected_statement_still_explains_itself(self, client):
+        """400s describe the caller's own mistake, so they stay informative."""
+        response = client.post(
+            "/tool", json={"name": "warehouse_query", "args": {"sql": "DROP TABLE revenue"}}
+        )
+        assert response.status_code == 400
+        assert "read-only" in response.json()["detail"].lower()
+
+
+class TestLogInjection:
+    def test_control_characters_are_stripped_before_logging(self):
+        from data_agent.observability import scrub
+
+        forged = "warehouse_query" + chr(10) + "INFO: transfer approved"
+        assert chr(10) not in scrub(forged)
+
+    def test_an_oversized_value_is_truncated(self):
+        from data_agent.observability import scrub
+
+        assert len(scrub("x" * 5000)) == 200
+
+    def test_a_crafted_tool_name_cannot_forge_a_log_line(self, client, caplog):
+        """req.name is caller-controlled and goes straight into a log record."""
+        import logging
+
+        forged = "nope" + chr(10) + "WARNING: fake entry"
+        with caplog.at_level(logging.INFO, logger="data_agent.api.app"):
+            client.post("/tool", json={"name": forged, "args": {}})
+        for record in caplog.records:
+            assert chr(10) not in str(record.__dict__.get("tool", ""))

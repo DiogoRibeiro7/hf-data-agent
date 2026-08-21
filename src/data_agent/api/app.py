@@ -34,7 +34,12 @@ from data_agent.api.schemas import (
 from data_agent.api.security import is_authenticated, require_token
 from data_agent.datasources.sql_guard import UnsafeSQLError
 from data_agent.mcp.tools import TOOLS
-from data_agent.observability import configure_logging, new_request_id, request_id_var
+from data_agent.observability import (
+    configure_logging,
+    new_request_id,
+    request_id_var,
+    scrub,
+)
 from data_agent.orchestrator.agent import (
     DeltaEvent,
     Orchestrator,
@@ -179,11 +184,20 @@ async def ask_stream(req: AskRequest, rt: RuntimeDep) -> StreamingResponse:
                             "step_limit_reached": reply.step_limit_reached,
                         },
                     )
-        except Exception as exc:
+        except Exception:
             # The response has already begun, so the status code cannot change:
             # report the failure in-band instead of dropping the connection.
+            # The detail stays in the log. An exception message can carry a
+            # DSN fragment, a filesystem path or the failing SQL, and this frame
+            # goes straight to the caller. They get the id to quote instead.
             logger.exception("streaming answer failed")
-            yield _sse("error", {"detail": f"{type(exc).__name__}: {exc}"})
+            yield _sse(
+                "error",
+                {
+                    "detail": "the agent failed while answering",
+                    "request_id": request_id_var.get(),
+                },
+            )
 
     return StreamingResponse(
         frames(),
@@ -197,18 +211,31 @@ def tool(req: ToolRequest, rt: RuntimeDep) -> ToolResponse:
     entry = TOOLS.get(req.name)
     if entry is None:
         raise HTTPException(404, f"unknown tool {req.name!r}. available: {sorted(TOOLS)}")
-    logger.info("tool invoked", extra={"tool": req.name, "arg_keys": sorted(req.args)})
+    logger.info(
+        "tool invoked",
+        extra={"tool": scrub(req.name), "arg_keys": [scrub(k) for k in sorted(req.args)]},
+    )
     try:
         return ToolResponse(result=entry.fn(rt, **req.args))
     except UnsafeSQLError as exc:
-        logger.warning("tool rejected unsafe sql", extra={"tool": req.name, "reason": str(exc)})
+        logger.warning(
+            "tool rejected unsafe sql",
+            extra={"tool": scrub(req.name), "reason": scrub(exc)},
+        )
         # The caller sent a statement the read-only guard rejected: their fault, not ours.
         raise HTTPException(400, str(exc)) from exc
     except TypeError as exc:
         # Wrong or missing arguments for this tool.
         raise HTTPException(400, f"bad arguments for tool {req.name!r}: {exc}") from exc
-    except Exception as exc:  # surface adapter errors to the caller
-        raise HTTPException(500, str(exc)) from exc
+    except Exception as exc:
+        # An adapter blew up. The cause is logged with the request id; the
+        # caller gets that id rather than the exception text, which can leak a
+        # DSN, a path, or the statement that failed.
+        logger.exception("tool failed", extra={"tool": scrub(req.name)})
+        raise HTTPException(
+            500,
+            f"tool execution failed (request {request_id_var.get()})",
+        ) from exc
 
 
 @app.get("/", response_class=HTMLResponse)
