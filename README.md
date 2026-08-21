@@ -11,53 +11,53 @@ grounds an **open-source LLM from Hugging Face** in your company knowledge base
 and lets it pull fresh numbers from your data platform.
 
 ```mermaid
-flowchart LR
-  subgraph entrypoints["Entrypoints"]
-    ui["Agent UI"]
-    http["HTTP API"]
-    local_mcp["Local MCP"]
-    remote_mcp["Remote MCP"]
-    slack["Slack"]
+graph TD
+  subgraph Entrypoints
+    UI[Agent UI]
+    HTTP[HTTP API]
+    LOCAL_MCP[Local MCP]
+    REMOTE_MCP[Remote MCP]
+    SLACK[Slack]
   end
 
-  subgraph agent_api["Agent API"]
-    orchestrator["Orchestrator\nretrieve -> ground -> tool loop"]
-    tools["ToolSpec registry\nmcp/tools.py\nknowledge_search\nwarehouse_query\nlist_dags"]
+  subgraph AgentAPI[Agent API]
+    ORCH[Orchestrator]
+    TOOLS[ToolSpec registry]
   end
 
-  subgraph model["ModelProvider"]
-    provider["mock | transformers\nHF Inference | OpenAI-compatible"]
+  subgraph ModelLayer[ModelProvider]
+    MODEL[Mock, Transformers, HF Inference, OpenAI compatible]
   end
 
-  subgraph offline["Offline knowledge build"]
-    scheduler["cron or Airflow"]
-    ingest["data-agent-ingest\nfilesystem | Notion | GDocs | Slack"]
-    kb["Knowledge base\nJSON store or Qdrant"]
+  subgraph OfflineBuild[Offline knowledge build]
+    SCHED[cron or Airflow]
+    INGEST[data-agent-ingest]
+    KB[Knowledge base]
   end
 
-  subgraph live["Live data platform"]
-    warehouse["Warehouse\nread-only guarded SQL"]
-    airflow["Airflow DAG metadata"]
-    catalog["Spark or metadata catalog"]
+  subgraph LivePlatform[Live data platform]
+    WAREHOUSE[Warehouse guarded SQL]
+    AIRFLOW[Airflow DAG metadata]
+    CATALOG[Spark or metadata catalog]
   end
 
-  ui --> orchestrator
-  http --> orchestrator
-  local_mcp --> orchestrator
-  remote_mcp --> orchestrator
-  slack --> orchestrator
+  UI --> ORCH
+  HTTP --> ORCH
+  LOCAL_MCP --> ORCH
+  REMOTE_MCP --> ORCH
+  SLACK --> ORCH
 
-  orchestrator -->|prompt plus tool catalogue| provider
-  provider -->|answer or tool JSON| orchestrator
-  orchestrator -->|execute requested tool| tools
-  tools -->|observation| orchestrator
+  ORCH -->|prompt plus tool catalogue| MODEL
+  MODEL -->|answer or tool JSON| ORCH
+  ORCH -->|execute requested tool| TOOLS
+  TOOLS -->|observation| ORCH
 
-  scheduler --> ingest
-  ingest -->|builds before serving| kb
-  tools -->|offline read| kb
-  tools -->|live query| warehouse
-  tools -->|live query| airflow
-  tools -->|live query| catalog
+  SCHED --> INGEST
+  INGEST -->|filesystem, Notion, GDocs, Slack| KB
+  TOOLS -->|offline read| KB
+  TOOLS -->|live query| WAREHOUSE
+  TOOLS -->|live query| AIRFLOW
+  TOOLS -->|live query| CATALOG
 ```
 
 The shape is intentional. Every entrypoint reaches the same `Orchestrator`, so
