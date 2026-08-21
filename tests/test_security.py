@@ -272,7 +272,7 @@ class TestLogInjection:
         invoked = [r for r in caplog.records if r.getMessage() == "tool invoked"]
         assert invoked
         for record in invoked:
-            assert crafted not in str(record.__dict__.get("args", []))
+            assert crafted not in str(record.__dict__.get("tool_args", []))
             assert record.__dict__["unexpected_args"] == 1
 
     def test_declared_argument_names_are_reported(self, client, caplog):
@@ -282,5 +282,5 @@ class TestLogInjection:
             client.post("/tool", json={"name": "warehouse_query", "args": {"sql": "select 1"}})
         invoked = [r for r in caplog.records if r.getMessage() == "tool invoked"]
         assert invoked
-        assert invoked[0].__dict__["args"] == ["sql"]
+        assert invoked[0].__dict__["tool_args"] == ["sql"]
         assert invoked[0].__dict__["unexpected_args"] == 0

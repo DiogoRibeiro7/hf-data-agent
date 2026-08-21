@@ -222,7 +222,7 @@ def tool(req: ToolRequest, rt: RuntimeDep) -> ToolResponse:
         "tool invoked",
         extra={
             "tool": entry.name,
-            "args": supplied,
+            "tool_args": supplied,
             "unexpected_args": len(req.args) - len(supplied),
         },
     )
