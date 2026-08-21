@@ -240,12 +240,36 @@ class TestLogInjection:
 
         assert len(scrub("x" * 5000)) == 200
 
-    def test_a_crafted_tool_name_cannot_forge_a_log_line(self, client, caplog):
-        """req.name is caller-controlled and goes straight into a log record."""
+    def test_an_unknown_tool_name_never_reaches_a_log_record(self, client, caplog):
+        """A crafted name is rejected by the registry lookup before anything is
+        logged, so the caller's string has no path into a log line at all."""
         import logging
 
         forged = "nope" + chr(10) + "WARNING: fake entry"
         with caplog.at_level(logging.INFO, logger="data_agent.api.app"):
-            client.post("/tool", json={"name": forged, "args": {}})
+            assert client.post("/tool", json={"name": forged, "args": {}}).status_code == 404
         for record in caplog.records:
+            assert forged not in str(record.__dict__.get("tool", ""))
             assert chr(10) not in str(record.__dict__.get("tool", ""))
+
+    def test_a_known_tool_is_logged_under_its_registry_name(self, client, caplog):
+        """The logged value comes from the ToolSpec, not from the request."""
+        import logging
+
+        with caplog.at_level(logging.INFO, logger="data_agent.api.app"):
+            client.post("/tool", json={"name": "warehouse_query", "args": {"sql": "select 1"}})
+        logged = [r.__dict__.get("tool") for r in caplog.records if "tool" in r.__dict__]
+        assert "warehouse_query" in logged
+
+    def test_crafted_argument_names_are_still_scrubbed(self, client, caplog):
+        """Argument keys stay caller-controlled, so they go through scrub."""
+        import logging
+
+        with caplog.at_level(logging.INFO, logger="data_agent.api.app"):
+            client.post(
+                "/tool",
+                json={"name": "warehouse_query", "args": {"sql" + chr(10) + "forged": "x"}},
+            )
+        for record in caplog.records:
+            for key in record.__dict__.get("arg_keys", []):
+                assert chr(10) not in key

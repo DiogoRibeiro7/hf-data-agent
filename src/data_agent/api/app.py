@@ -211,16 +211,20 @@ def tool(req: ToolRequest, rt: RuntimeDep) -> ToolResponse:
     entry = TOOLS.get(req.name)
     if entry is None:
         raise HTTPException(404, f"unknown tool {req.name!r}. available: {sorted(TOOLS)}")
+    # entry.name, not req.name: past the lookup above the caller's string is
+    # known to be a key of our own registry, so the trusted value is logged
+    # rather than a sanitised copy of untrusted input. Argument names are still
+    # the caller's, so those are scrubbed.
     logger.info(
         "tool invoked",
-        extra={"tool": scrub(req.name), "arg_keys": [scrub(k) for k in sorted(req.args)]},
+        extra={"tool": entry.name, "arg_keys": [scrub(k) for k in sorted(req.args)]},
     )
     try:
         return ToolResponse(result=entry.fn(rt, **req.args))
     except UnsafeSQLError as exc:
         logger.warning(
             "tool rejected unsafe sql",
-            extra={"tool": scrub(req.name), "reason": scrub(exc)},
+            extra={"tool": entry.name, "reason": scrub(exc)},
         )
         # The caller sent a statement the read-only guard rejected: their fault, not ours.
         raise HTTPException(400, str(exc)) from exc
@@ -231,7 +235,7 @@ def tool(req: ToolRequest, rt: RuntimeDep) -> ToolResponse:
         # An adapter blew up. The cause is logged with the request id; the
         # caller gets that id rather than the exception text, which can leak a
         # DSN, a path, or the statement that failed.
-        logger.exception("tool failed", extra={"tool": scrub(req.name)})
+        logger.exception("tool failed", extra={"tool": entry.name})
         raise HTTPException(
             500,
             f"tool execution failed (request {request_id_var.get()})",
