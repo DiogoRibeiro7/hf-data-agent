@@ -17,6 +17,14 @@ services:
     volumes: ["./data:/app/data"]
     restart: unless-stopped
 
+  # Vector store for DA_VECTOR_BACKEND=qdrant. The JSON store is the default
+  # and needs none of this.
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports: ["6333:6333"]
+    volumes: ["qdrant_storage:/qdrant/storage"]
+    restart: unless-stopped
+
   # Open HF model served behind an OpenAI-compatible API.
   # Needs a GPU; drop this service and use DA_MODEL_BACKEND=mock|hf_inference otherwise.
   model:
@@ -29,3 +37,6 @@ services:
       resources:
         reservations:
           devices: [{ driver: nvidia, count: 1, capabilities: [gpu] }]
+
+volumes:
+  qdrant_storage:

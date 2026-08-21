@@ -79,6 +79,23 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Qdrant vector store** (roadmap item 05), selected with
+  `DA_VECTOR_BACKEND=qdrant` and the new `qdrant` extra. The JSON store stays
+  the default, because needing no service is what keeps the offline quickstart
+  honest. Both satisfy a shared `VectorStoreProtocol`, so the retriever and the
+  ingestion pipeline do not know which is in use.
+  - Chunk ids are hashed to deterministic UUID5 point ids, so a re-ingest
+    overwrites a chunk instead of duplicating it — the same idempotency the JSON
+    store gained earlier.
+  - The collection is created on first write from the embedder's dimension, and
+    a mismatched query is refused with the same actionable error as the JSON
+    store.
+  - Tested against a real client via `QdrantClient(":memory:")`, which runs the
+    query engine in process, so the collection lifecycle and similarity search
+    are genuinely executed rather than mocked. A dedicated CI job runs them.
+  - `docker compose up -d qdrant` starts a server; the README explains that
+    migration is a re-ingest rather than a copy.
+
 - **Notion, Slack and Google Docs knowledge connectors** (roadmap items 03 and
   04), replacing the stubs that raised `NotImplementedError`. Each is opt-in per
   ingest run (`--notion`, `--slack`, `--gdocs`) and refuses to run without its

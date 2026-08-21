@@ -211,6 +211,38 @@ same question asked over MCP take an identical path.
 Every response carries an `X-Request-ID`; send your own header to correlate
 with upstream logs.
 
+## Scaling the vector store
+
+The default JSON store loads every vector into memory and scans them linearly.
+That is the right trade for the seed corpus and for CI — no service, no
+dependency, nothing to run — and the wrong one once the corpus stops being
+small.
+
+Switching to Qdrant:
+
+```bash
+pip install ".[qdrant]"
+docker compose up -d qdrant
+export DA_VECTOR_BACKEND=qdrant
+make ingest        # rebuilds into the collection
+```
+
+**Migration is a re-ingest, not a copy.** Nothing reads the JSON file and writes
+it to Qdrant: `make ingest` rebuilds from the sources, which is also the only
+way to be sure the two agree. The JSON file is left untouched, so switching
+`DA_VECTOR_BACKEND` back is instant.
+
+A few things worth knowing before you switch:
+
+- Chunk ids become deterministic UUIDs, so re-ingesting **overwrites** a chunk
+  rather than adding a duplicate beside it.
+- The collection is created on the first write, taking its width from the
+  embedder. Changing `DA_EMBEDDER_BACKEND` afterwards is refused with the same
+  dimension-mismatch error the JSON store raises — re-ingest instead.
+- `clear()` drops the collection. If you point two environments at one Qdrant,
+  give them different `DA_QDRANT_COLLECTION` values or an ingest in one will
+  wipe the other.
+
 ## Evaluating changes
 
 A tool-calling agent cannot be judged by reading one answer, so there is a
@@ -260,7 +292,9 @@ Every setting is an environment variable prefixed `DA_`; see
 | `DA_MODEL_BACKEND`               | `mock`                        | which provider to build              |
 | `DA_MODEL_ID`                    | `Qwen/Qwen2.5-1.5B-Instruct`  | model to load or request             |
 | `DA_EMBEDDER_BACKEND`            | `hashing`                     | `hashing` or `sentence_transformers` |
-| `DA_VECTOR_STORE_PATH`           | `data/vector_store.json`      | where ingestion writes               |
+| `DA_VECTOR_BACKEND`              | `json`                        | `json` or `qdrant`                   |
+| `DA_VECTOR_STORE_PATH`           | `data/vector_store.json`      | where the JSON store writes          |
+| `DA_QDRANT_URL` / `_COLLECTION`  | `localhost:6333` / `data_agent` | used when backend is `qdrant`      |
 | `DA_RETRIEVAL_TOP_K`             | `4`                           | chunks injected into the prompt      |
 | `DA_ENABLE_TOOLS`                | `true`                        | `false` = single-shot RAG, no tools  |
 | `DA_MAX_TOOL_STEPS`              | `4`                           | tool calls before an answer is forced|

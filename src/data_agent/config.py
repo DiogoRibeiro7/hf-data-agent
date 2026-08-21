@@ -9,6 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ModelBackend = Literal["mock", "transformers", "openai_compatible", "hf_inference"]
 EmbedderBackend = Literal["hashing", "sentence_transformers"]
+VectorBackend = Literal["json", "qdrant"]
 LogFormat = Literal["text", "json"]
 
 
@@ -35,7 +36,13 @@ class Settings(BaseSettings):
     embedder_backend: EmbedderBackend = "hashing"
     embedder_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_dim: int = 384
+    #: json needs no service and is the offline default; qdrant needs the
+    #: `.[qdrant]` extra and a running server.
+    vector_backend: VectorBackend = "json"
     vector_store_path: str = "data/vector_store.json"
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_api_key: str = ""
+    qdrant_collection: str = "data_agent"
     retrieval_top_k: int = 4
 
     # ---- Tool-calling loop ----

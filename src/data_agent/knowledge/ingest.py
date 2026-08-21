@@ -13,7 +13,8 @@ from __future__ import annotations
 from data_agent.config import Settings
 from data_agent.knowledge.embedder import build_embedder
 from data_agent.knowledge.sources.base import Document, KnowledgeSource
-from data_agent.knowledge.store import Chunk, VectorStore
+from data_agent.knowledge.store import Chunk
+from data_agent.knowledge.stores import VectorStoreProtocol, build_store
 
 
 def chunk_text(text: str, size: int = 800, overlap: int = 100) -> list[str]:
@@ -29,7 +30,7 @@ def ingest(
     settings: Settings,
     *,
     rebuild: bool = True,
-) -> VectorStore:
+) -> VectorStoreProtocol:
     """Build the vector store from `sources`.
 
     Args:
@@ -43,7 +44,7 @@ def ingest(
         The populated store, already saved to disk.
     """
     embedder = build_embedder(settings)
-    store = VectorStore(settings.vector_store_path)
+    store = build_store(settings)
     if rebuild:
         store.clear()
 

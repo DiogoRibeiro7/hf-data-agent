@@ -43,6 +43,7 @@ mcp = ["mcp>=1.9,<2"]
 slack = ["slack-bolt>=1.18"]
 # Notion and Slack ingestion need nothing extra: they use httpx from core.
 gdocs = ["google-api-python-client>=2.100", "google-auth>=2.30"]
+qdrant = ["qdrant-client>=1.7"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -56,7 +57,7 @@ dev = [
     "pre-commit>=3.7",
     "types-requests",
 ]
-all = ["hf-data-agent[transformers,embeddings,mcp,slack,gdocs,dev]"]
+all = ["hf-data-agent[transformers,embeddings,mcp,slack,gdocs,qdrant,dev]"]
 
 [project.scripts]
 data-agent-api = "data_agent.entrypoints.run_api:main"
@@ -104,6 +105,9 @@ omit = [
     "*/model/transformers_provider.py",
     # Requires the optional `mcp` / `slack_bolt` extras.
     "*/mcp/server.py",
+    # Requires the optional `qdrant` extra; covered by the qdrant-extra CI job,
+    # which runs tests/test_qdrant_store.py against a real in-process client.
+    "*/knowledge/store_qdrant.py",
 ]
 
 [tool.coverage.report]
@@ -190,5 +194,6 @@ module = [
     "slack_bolt.*",
     "google.*",
     "googleapiclient.*",
+    "qdrant_client.*",
 ]
 ignore_missing_imports = true
