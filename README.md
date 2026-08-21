@@ -10,38 +10,65 @@ An internal **data agent**: several entrypoints funnel into one Agent API, which
 grounds an **open-source LLM from Hugging Face** in your company knowledge base
 and lets it pull fresh numbers from your data platform.
 
-```
-  ENTRYPOINTS          AGENT-API                          MODEL
- ┌──────────────┐     ┌────────────────────┐             ┌──────────────────┐
- │ Agent UI     │     │ Orchestrator       │  prompt +   │ open HF model    │
- │ HTTP API     │     │                    │──catalogue─▶│                  │
- │ Local MCP    │────▶│ 1. retrieve        │             │ Qwen · Llama ·   │
- │ Remote MCP   │     │ 2. ground prompt   │◀─answer or ─│ Phi · Mistral    │
- │ Slack        │     │ 3. tool loop       │  tool call  │                  │
- └──────────────┘     └────┬──────────┬────┘             └──────────────────┘
-   one funnel              │          ▲ result returns as
-                 run tool  ▼          │ an OBSERVATION
-                      ┌────┬──────────┬────┐
-                      │ TOOLS              │
-                      │ knowledge_search   │
-                      │ warehouse_query    │
-                      │ list_dags          │
-                      └────┬──────────┬────┘
-                           │          │
-                  ┌────────┘          └─────────────────────┐
-                  ▼ offline                                 ▼ live
-   ┌──────────────────────────────┐          ┌──────────────────────────────┐
-   │ Knowledge base (RAG)         │          │ Data platform                │
-   │ fs · Notion · GDocs · Slack  │          │ warehouse — guarded SQL      │
-   │ built by scripts/ingest.py   │          │ Airflow · Spark · catalog    │
-   └──────────────────────────────┘          └──────────────────────────────┘
+```mermaid
+flowchart LR
+  subgraph entrypoints["Entrypoints"]
+    ui["Agent UI"]
+    http["HTTP API"]
+    local_mcp["Local MCP"]
+    remote_mcp["Remote MCP"]
+    slack["Slack"]
+  end
+
+  subgraph agent_api["Agent API"]
+    orchestrator["Orchestrator\nretrieve -> ground -> tool loop"]
+    tools["ToolSpec registry\nmcp/tools.py\nknowledge_search\nwarehouse_query\nlist_dags"]
+  end
+
+  subgraph model["ModelProvider"]
+    provider["mock | transformers\nHF Inference | OpenAI-compatible"]
+  end
+
+  subgraph offline["Offline knowledge build"]
+    scheduler["cron or Airflow"]
+    ingest["data-agent-ingest\nfilesystem | Notion | GDocs | Slack"]
+    kb["Knowledge base\nJSON store or Qdrant"]
+  end
+
+  subgraph live["Live data platform"]
+    warehouse["Warehouse\nread-only guarded SQL"]
+    airflow["Airflow DAG metadata"]
+    catalog["Spark or metadata catalog"]
+  end
+
+  ui --> orchestrator
+  http --> orchestrator
+  local_mcp --> orchestrator
+  remote_mcp --> orchestrator
+  slack --> orchestrator
+
+  orchestrator -->|prompt plus tool catalogue| provider
+  provider -->|answer or tool JSON| orchestrator
+  orchestrator -->|execute requested tool| tools
+  tools -->|observation| orchestrator
+
+  scheduler --> ingest
+  ingest -->|builds before serving| kb
+  tools -->|offline read| kb
+  tools -->|live query| warehouse
+  tools -->|live query| airflow
+  tools -->|live query| catalog
 ```
 
-Two things the picture is trying to say. Every entrypoint reaches the same
-`Orchestrator` — one funnel, not five — so a question asked in Slack takes the
-same path as one asked over MCP. And knowledge is built **offline** and only
-read while serving, whereas the data platform is queried **live**; that split is
-the reason ingestion is a separate script rather than part of a request.
+The shape is intentional. Every entrypoint reaches the same `Orchestrator`, so
+a question asked in Slack takes the same path as one asked over MCP. The
+orchestrator is the only component that talks to `ModelProvider`, and tools are
+declared once in `mcp/tools.py`.
+
+The split at the bottom matters operationally: knowledge is built **offline**
+and only read while serving, whereas warehouse, Airflow and metadata calls are
+queried **live**. That is why ingestion is a separate command rather than part
+of a request.
 
 The loop between orchestrator, model and tools is described in
 [How it answers](#how-it-answers).
