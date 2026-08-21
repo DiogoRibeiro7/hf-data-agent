@@ -9,7 +9,7 @@ authors:
     affiliation: "ESMAD - Instituto Politécnico do Porto"
     orcid: "https://orcid.org/0009-0001-2022-7072"
 doi: "10.5281/zenodo.22043399"
-version: "0.1.0"
+version: "0.1.1"
 date-released: "2026-08-21"
 license: "MIT"
 repository-code: "https://github.com/DiogoRibeiro7/hf-data-agent"

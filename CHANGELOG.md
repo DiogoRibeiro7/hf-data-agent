@@ -7,6 +7,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.1] - 2026-08-21
+
 ### Fixed
 
 - **The agent UI was completely broken.** Two SSE delimiters in the page's
@@ -253,5 +257,6 @@ rather than a change from a previous version.
   `--append`.
 - The package version has one source of truth instead of three.
 
-[Unreleased]: https://github.com/DiogoRibeiro7/hf-data-agent/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/DiogoRibeiro7/hf-data-agent/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/DiogoRibeiro7/hf-data-agent/releases/tag/v0.1.1
 [0.1.0]: https://github.com/DiogoRibeiro7/hf-data-agent/releases/tag/v0.1.0
