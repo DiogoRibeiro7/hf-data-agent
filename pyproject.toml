@@ -39,7 +39,7 @@ transformers = ["transformers>=4.44", "torch>=2.2", "accelerate>=0.30"]
 embeddings = ["sentence-transformers>=3.0"]
 # mcp 2.0 removed mcp.server.fastmcp, which mcp/server.py builds on. Pinned
 # below 2 until that migration is done; see the mcp-extra CI job.
-mcp = ["mcp>=1.9,<2"]
+mcp = ["mcp>=1.9,<3"]
 slack = ["slack-bolt>=1.18"]
 # Notion and Slack ingestion need nothing extra: they use httpx from core.
 gdocs = ["google-api-python-client>=2.100", "google-auth>=2.30"]
