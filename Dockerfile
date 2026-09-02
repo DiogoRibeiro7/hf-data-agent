@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---------------------------------------------------------------- builder ----
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PYTHONDONTWRITEBYTECODE=1
@@ -17,7 +17,7 @@ COPY src ./src
 RUN pip install --no-cache-dir ".[mcp]"
 
 # ---------------------------------------------------------------- runtime ----
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 LABEL org.opencontainers.image.title="hf-data-agent" \
       org.opencontainers.image.description="Open-source-LLM data agent with RAG and live data platform tools" \
